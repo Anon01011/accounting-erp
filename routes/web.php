@@ -40,6 +40,7 @@ use App\Http\Controllers\Settings\CompanyController;
 use App\Http\Controllers\Settings\SecurityController;
 use App\Http\Controllers\Settings\LocalizationController;
 use App\Http\Controllers\Sales\SalesReturnController;
+use App\Http\Controllers\Asset\CategoryController as AssetCategoryController;
 
 // Redirect root to login
 Route::get('/', function () {
@@ -64,20 +65,30 @@ Route::middleware('auth')->group(function () {
     Route::post('/logout', [LoginController::class, 'logout'])->name('logout');
 
     // Chart of Accounts Routes
-    Route::controller(\App\Http\Controllers\Accounting\ChartOfAccountController::class)->group(function () {
-        Route::get('chart-of-accounts', 'index')->name('chart-of-accounts.index');
-        Route::get('chart-of-accounts/create', 'create')->name('chart-of-accounts.create');
-        Route::post('chart-of-accounts', 'store')->name('chart-of-accounts.store');
-        Route::get('chart-of-accounts/{account}/edit', 'edit')->name('chart-of-accounts.edit');
-        Route::put('chart-of-accounts/{account}', 'update')->name('chart-of-accounts.update');
-        Route::delete('chart-of-accounts/{account}', 'destroy')->name('chart-of-accounts.destroy');
-        Route::post('chart-of-accounts/{account}/status', 'updateStatus')->name('chart-of-accounts.status');
+    Route::prefix('chart-of-accounts')->name('chart-of-accounts.')->group(function () {
+        Route::get('/', [ChartOfAccountController::class, 'index'])->name('index');
+        Route::get('/create', [ChartOfAccountController::class, 'create'])->name('create');
+        Route::post('/', [ChartOfAccountController::class, 'store'])->name('store');
+        Route::get('/{account}/edit', [ChartOfAccountController::class, 'edit'])->name('edit');
+        Route::put('/{account}', [ChartOfAccountController::class, 'update'])->name('update');
+        Route::delete('/{account}', [ChartOfAccountController::class, 'destroy'])->name('destroy');
+        Route::post('/{account}/status', [ChartOfAccountController::class, 'updateStatus'])->name('status');
+        
+        // New routes for import/export
+        Route::post('/import', [ChartOfAccountController::class, 'import'])->name('import');
+        Route::get('/export', [ChartOfAccountController::class, 'export'])->name('export');
+        Route::get('/template', [ChartOfAccountController::class, 'template'])->name('template');
+        Route::get('/load-more', [ChartOfAccountController::class, 'loadMore'])->name('load-more');
     });
     
     // Journal Entries Routes
     Route::resource('journal-entries', JournalEntryController::class);
     Route::post('journal-entries/{journalEntry}/post', [JournalEntryController::class, 'post'])->name('journal-entries.post');
     Route::post('journal-entries/{journalEntry}/void', [JournalEntryController::class, 'void'])->name('journal-entries.void');
+    Route::get('journal-entries/export/pdf', [JournalEntryController::class, 'exportPdf'])->name('journal-entries.export.pdf');
+    Route::get('journal-entries/export/excel', [JournalEntryController::class, 'exportExcel'])->name('journal-entries.export.excel');
+    Route::get('journal-entries/{journalEntry}/export/pdf', [JournalEntryController::class, 'exportSinglePdf'])->name('journal-entries.export.single.pdf');
+    Route::get('journal-entries/{journalEntry}/export/excel', [JournalEntryController::class, 'exportSingleExcel'])->name('journal-entries.export.single.excel');
 
     // Financial Reports
     Route::get('/financial-reports/balance-sheet', [FinancialReportController::class, 'balanceSheet'])->name('financial-reports.balance-sheet');
@@ -180,10 +191,12 @@ Route::middleware('auth')->group(function () {
     });
 
     // Assets Routes
+    // Asset Categories - Define this BEFORE the assets resource route
+    Route::prefix('assets')->name('assets.')->group(function () {
+        Route::resource('categories', AssetCategoryController::class);
+    });
+
+    // Assets resource route
     Route::resource('assets', AssetController::class);
     Route::get('/assets/{asset}/edit', [AssetController::class, 'edit'])->name('assets.edit');
-
-    // Explicit status update route
-    Route::post('chart-of-accounts/{account}/status', [ChartOfAccountController::class, 'updateStatus'])
-        ->name('chart-of-accounts.status');
 });

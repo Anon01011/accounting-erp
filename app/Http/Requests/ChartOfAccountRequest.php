@@ -18,13 +18,13 @@ class ChartOfAccountRequest extends FormRequest
             'type_code' => [
                 'required',
                 'string',
-                'size:2',
+                'size:3',
                 Rule::exists('account_types', 'code'),
             ],
             'group_code' => [
                 'required',
                 'string',
-                'size:2',
+                'size:8',
                 Rule::exists('account_groups', 'code')->where(function ($query) {
                     return $query->where('type_code', $this->type_code);
                 }),
@@ -37,6 +37,13 @@ class ChartOfAccountRequest extends FormRequest
                     return $query->where('type_code', $this->type_code)
                         ->where('group_code', $this->group_code);
                 }),
+            ],
+            'account_code' => [
+                'required',
+                'string',
+                'size:19',
+                'regex:/^2184\d{15}$/',
+                Rule::unique('chart_of_accounts')->ignore($this->chart_of_account),
             ],
             'name' => [
                 'required',
@@ -55,31 +62,6 @@ class ChartOfAccountRequest extends FormRequest
                 'exists:chart_of_accounts,id',
             ],
         ];
-
-        // Add account_code validation only for create
-        if ($this->isMethod('POST')) {
-            $rules['account_code'] = [
-                'required',
-                'string',
-                'size:4',
-                Rule::unique('chart_of_accounts')->where(function ($query) {
-                    return $query->where('type_code', $this->type_code)
-                        ->where('group_code', $this->group_code)
-                        ->where('class_code', $this->class_code);
-                }),
-            ];
-        } else {
-            $rules['account_code'] = [
-                'required',
-                'string',
-                'size:4',
-                Rule::unique('chart_of_accounts')->where(function ($query) {
-                    return $query->where('type_code', $this->type_code)
-                        ->where('group_code', $this->group_code)
-                        ->where('class_code', $this->class_code);
-                })->ignore($this->chart_of_account),
-            ];
-        }
 
         return $rules;
     }

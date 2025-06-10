@@ -14,11 +14,11 @@ class Category extends Model
         'name',
         'description',
         'parent_id',
-        'status',
+        'is_active'
     ];
 
     protected $casts = [
-        'status' => 'boolean',
+        'is_active' => 'boolean'
     ];
 
     public function parent()
@@ -29,6 +29,11 @@ class Category extends Model
     public function children()
     {
         return $this->hasMany(Category::class, 'parent_id');
+    }
+
+    public function assets()
+    {
+        return $this->hasMany(Asset::class);
     }
 
     public function products()

@@ -8,6 +8,9 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\Rule;
+use PDF;
+use Excel;
+use App\Domains\Accounting\Services\JournalEntryExportService;
 
 class JournalEntryController extends Controller
 {
@@ -28,6 +31,31 @@ class JournalEntryController extends Controller
     }
 
     /**
+     * Generate a unique reference number for journal entry
+     */
+    private function generateReferenceNumber(): string
+    {
+        $prefix = 'JE';
+        $date = now()->format('Ymd');
+        $time = now()->format('Hi');
+        
+        // Get the last reference number for today
+        $lastEntry = JournalEntry::where('reference_no', 'like', "{$prefix}-{$date}-%")
+            ->orderBy('reference_no', 'desc')
+            ->first();
+
+        if ($lastEntry) {
+            // Extract the sequence number and increment
+            $sequence = (int) substr($lastEntry->reference_no, -4);
+            $sequence++;
+        } else {
+            $sequence = 1;
+        }
+
+        return sprintf('%s-%s-%s%04d', $prefix, $date, $time, $sequence);
+    }
+
+    /**
      * Show the form for creating a new resource.
      */
     public function create()
@@ -40,7 +68,9 @@ class JournalEntryController extends Controller
                 ->orderBy('account_code')
                 ->get();
 
-            return view('journal-entries.create', compact('accounts'));
+            $referenceNo = $this->generateReferenceNumber();
+
+            return view('journal-entries.create', compact('accounts', 'referenceNo'));
         } catch (\Exception $e) {
             return redirect()->back()->with('error', 'Error loading create form: ' . $e->getMessage());
         }
@@ -61,6 +91,17 @@ class JournalEntryController extends Controller
                 'items.*.debit' => 'required|numeric|min:0',
                 'items.*.credit' => 'required|numeric|min:0',
                 'items.*.description' => 'nullable|string'
+            ], [
+                'items.required' => 'At least one journal entry line is required.',
+                'items.min' => 'At least two journal entry lines are required.',
+                'items.*.chart_of_account_id.required' => 'Account is required for each line.',
+                'items.*.chart_of_account_id.exists' => 'Selected account is invalid.',
+                'items.*.debit.required' => 'Debit amount is required.',
+                'items.*.debit.numeric' => 'Debit amount must be a number.',
+                'items.*.debit.min' => 'Debit amount cannot be negative.',
+                'items.*.credit.required' => 'Credit amount is required.',
+                'items.*.credit.numeric' => 'Credit amount must be a number.',
+                'items.*.credit.min' => 'Credit amount cannot be negative.'
             ]);
 
             // Validate that total debits equal total credits
@@ -68,6 +109,12 @@ class JournalEntryController extends Controller
             $totalCredit = collect($request->items)->sum('credit');
 
             if (abs($totalDebit - $totalCredit) > 0.01) {
+                if ($request->ajax()) {
+                    return response()->json([
+                        'message' => 'Total debits must equal total credits.',
+                        'errors' => ['items' => ['Total debits must equal total credits.']]
+                    ], 422);
+                }
                 throw new \Exception('Total debits must equal total credits.');
             }
 
@@ -86,22 +133,41 @@ class JournalEntryController extends Controller
                     'chart_of_account_id' => $item['chart_of_account_id'],
                     'debit' => $item['debit'],
                     'credit' => $item['credit'],
-                    'description' => $item['description'] ?? null
+                    'description' => $item['description'] ?? null,
+                    'created_by' => Auth::id()
                 ]);
             }
 
             DB::commit();
 
+            if ($request->ajax()) {
+                return response()->json([
+                    'message' => 'Journal entry created successfully.',
+                    'redirect' => route('journal-entries.show', $entry)
+                ]);
+            }
+
             return redirect()
                 ->route('journal-entries.show', $entry)
                 ->with('success', 'Journal entry created successfully.');
         } catch (\Illuminate\Validation\ValidationException $e) {
+            if ($request->ajax()) {
+                return response()->json([
+                    'message' => 'Validation failed',
+                    'errors' => $e->errors()
+                ], 422);
+            }
             return redirect()
                 ->back()
                 ->withErrors($e->validator)
                 ->withInput();
         } catch (\Exception $e) {
             DB::rollBack();
+            if ($request->ajax()) {
+                return response()->json([
+                    'message' => 'Error creating journal entry: ' . $e->getMessage()
+                ], 500);
+            }
             return redirect()
                 ->back()
                 ->with('error', 'Error creating journal entry: ' . $e->getMessage())
@@ -112,11 +178,11 @@ class JournalEntryController extends Controller
     /**
      * Display the specified resource.
      */
-    public function show(JournalEntry $journalEntry)
+    public function show(JournalEntry $journal_entry)
     {
         try {
-            $journalEntry->load(['creator', 'updater', 'items.chartOfAccount']);
-            return view('journal-entries.show', compact('journalEntry'));
+            $journal_entry->load(['creator', 'updater', 'items.chartOfAccount']);
+            return view('journal-entries.show', compact('journal_entry'));
         } catch (\Exception $e) {
             return redirect()->back()->with('error', 'Error loading journal entry details: ' . $e->getMessage());
         }
@@ -255,7 +321,8 @@ class JournalEntryController extends Controller
             
             $journalEntry->update([
                 'status' => 'posted',
-                'updated_by' => Auth::id()
+                'posted_by' => Auth::id(),
+                'posted_at' => now(),
             ]);
             
             DB::commit();
@@ -295,6 +362,72 @@ class JournalEntryController extends Controller
             return redirect()
                 ->back()
                 ->with('error', 'Error voiding journal entry: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Export journal entries to PDF
+     */
+    public function exportPdf()
+    {
+        try {
+            $entries = JournalEntry::with(['items.chartOfAccount', 'creator', 'poster'])
+                ->orderBy('entry_date', 'desc')
+                ->orderBy('created_at', 'desc')
+                ->get();
+
+            $pdf = PDF::loadView('journal-entries.export.pdf', [
+                'entries' => $entries,
+                'date' => now()->format('Y-m-d H:i:s')
+            ]);
+
+            return $pdf->download('journal-entries-' . now()->format('Y-m-d') . '.pdf');
+        } catch (\Exception $e) {
+            return redirect()->back()->with('error', 'Error exporting to PDF: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Export journal entries to Excel
+     */
+    public function exportExcel()
+    {
+        try {
+            $service = new JournalEntryExportService();
+            $entries = JournalEntry::with(['creator', 'poster', 'items.chartOfAccount'])
+                                    ->latest()
+                                    ->get();
+            return $service->exportToExcel($entries);
+        } catch (\Exception $e) {
+            return redirect()->back()->with('error', 'Error exporting to Excel: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Export a single specified journal entry to PDF.
+     */
+    public function exportSinglePdf(JournalEntry $journalEntry)
+    {
+        try {
+            $service = new JournalEntryExportService();
+            $entries = collect([$journalEntry->load(['creator', 'poster', 'items.chartOfAccount'])]);
+            return $service->exportToPdf($entries);
+        } catch (\Exception $e) {
+            return redirect()->back()->with('error', 'Error exporting single entry to PDF: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Export a single specified journal entry to Excel.
+     */
+    public function exportSingleExcel(JournalEntry $journalEntry)
+    {
+        try {
+            $service = new JournalEntryExportService();
+            $entries = collect([$journalEntry->load(['creator', 'poster', 'items.chartOfAccount'])]);
+            return $service->exportToExcel($entries);
+        } catch (\Exception $e) {
+            return redirect()->back()->with('error', 'Error exporting single entry to Excel: ' . $e->getMessage());
         }
     }
 }

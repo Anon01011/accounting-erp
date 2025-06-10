@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\ChartOfAccount;
+use App\Models\AssetDetail;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -17,27 +18,28 @@ class AssetController extends Controller
 
     public function index()
     {
-        $assets = ChartOfAccount::where('type_code', '01') // Assuming 01 is the code for Assets
+        $assets = ChartOfAccount::where('type_code', '01')
             ->whereNull('parent_id')
-            ->with('children')
+            ->with(['children', 'assetDetails'])
             ->orderBy('account_code')
             ->get();
 
         $assetCategories = config('accounting.asset_categories');
-        $parentAssets = ChartOfAccount::where('type_code', '01')
-            ->orderBy('account_code')
-            ->get();
+        $assetGroups = config('accounting.asset_groups');
 
-        return view('assets.index', compact('assets', 'assetCategories', 'parentAssets'));
+        return view('assets.index', compact('assets', 'assetCategories', 'assetGroups'));
     }
 
     public function create()
     {
+        $assetCategories = config('accounting.asset_categories');
+        $assetGroups = config('accounting.asset_groups');
         $parentAssets = ChartOfAccount::where('type_code', '01')
+            ->whereNull('parent_id')
             ->orderBy('account_code')
             ->get();
-        $assetCategories = config('accounting.asset_categories');
-        return view('assets.create', compact('parentAssets', 'assetCategories'));
+
+        return view('assets.create', compact('assetCategories', 'assetGroups', 'parentAssets'));
     }
 
     public function store(Request $request)
@@ -50,12 +52,24 @@ class AssetController extends Controller
             'description' => 'nullable|string',
             'parent_id' => 'nullable|exists:chart_of_accounts,id',
             'is_active' => 'boolean',
+            // Asset Details
+            'serial_number' => 'nullable|string',
+            'purchase_date' => 'required|date',
+            'purchase_price' => 'required|numeric|min:0',
+            'warranty_expiry' => 'nullable|date',
+            'depreciation_method' => 'required|in:straight_line,declining_balance,sum_of_years',
+            'depreciation_rate' => 'required|numeric|min:0|max:100',
+            'useful_life' => 'required|integer|min:1',
+            'location' => 'nullable|string',
+            'condition' => 'required|in:new,good,fair,poor',
+            'notes' => 'nullable|string'
         ]);
 
         DB::beginTransaction();
         try {
-            ChartOfAccount::create([
-                'type_code' => '01', // Assets type code
+            // Create Chart of Account
+            $account = ChartOfAccount::create([
+                'type_code' => '01',
                 'group_code' => $request->group_code,
                 'class_code' => $request->class_code,
                 'account_code' => $request->account_code,
@@ -65,35 +79,42 @@ class AssetController extends Controller
                 'is_active' => $request->has('is_active'),
                 'created_by' => Auth::id(),
             ]);
+
+            // Create Asset Details
+            $account->assetDetails()->create([
+                'serial_number' => $request->serial_number,
+                'purchase_date' => $request->purchase_date,
+                'purchase_price' => $request->purchase_price,
+                'warranty_expiry' => $request->warranty_expiry,
+                'depreciation_method' => $request->depreciation_method,
+                'depreciation_rate' => $request->depreciation_rate,
+                'useful_life' => $request->useful_life,
+                'location' => $request->location,
+                'condition' => $request->condition,
+                'notes' => $request->notes,
+                'created_by' => Auth::id(),
+            ]);
+
             DB::commit();
-            return redirect()->route('assets.index')->with('success', 'Asset account created successfully.');
+            return redirect()->route('assets.index')->with('success', 'Asset created successfully.');
         } catch (\Exception $e) {
             DB::rollBack();
-            return redirect()->back()->with('error', 'Error creating asset account: ' . $e->getMessage())->withInput();
+            return redirect()->back()->with('error', 'Error creating asset: ' . $e->getMessage())->withInput();
         }
     }
 
     public function edit(ChartOfAccount $asset)
     {
-        // Return JSON for AJAX requests (used by modal)
-        if (request()->ajax()) {
-            return response()->json([
-                'group_code' => $asset->group_code,
-                'class_code' => $asset->class_code,
-                'account_code' => $asset->account_code,
-                'name' => $asset->name,
-                'description' => $asset->description,
-                'parent_id' => $asset->parent_id,
-                'is_active' => $asset->is_active,
-            ]);
-        }
-
-        // Fallback for non-AJAX (optional)
+        $asset->load('assetDetails');
+        $assetCategories = config('accounting.asset_categories');
+        $assetGroups = config('accounting.asset_groups');
         $parentAssets = ChartOfAccount::where('type_code', '01')
             ->where('id', '!=', $asset->id)
+            ->whereNull('parent_id')
             ->orderBy('account_code')
             ->get();
-        return view('assets.edit', compact('asset', 'parentAssets'));
+
+        return view('assets.edit', compact('asset', 'assetCategories', 'assetGroups', 'parentAssets'));
     }
 
     public function update(Request $request, ChartOfAccount $asset)
@@ -106,10 +127,22 @@ class AssetController extends Controller
             'description' => 'nullable|string',
             'parent_id' => 'nullable|exists:chart_of_accounts,id',
             'is_active' => 'boolean',
+            // Asset Details
+            'serial_number' => 'nullable|string',
+            'purchase_date' => 'required|date',
+            'purchase_price' => 'required|numeric|min:0',
+            'warranty_expiry' => 'nullable|date',
+            'depreciation_method' => 'required|in:straight_line,declining_balance,sum_of_years',
+            'depreciation_rate' => 'required|numeric|min:0|max:100',
+            'useful_life' => 'required|integer|min:1',
+            'location' => 'nullable|string',
+            'condition' => 'required|in:new,good,fair,poor',
+            'notes' => 'nullable|string'
         ]);
 
         DB::beginTransaction();
         try {
+            // Update Chart of Account
             $asset->update([
                 'group_code' => $request->group_code,
                 'class_code' => $request->class_code,
@@ -120,11 +153,27 @@ class AssetController extends Controller
                 'is_active' => $request->has('is_active'),
                 'updated_by' => Auth::id(),
             ]);
+
+            // Update Asset Details
+            $asset->assetDetails()->update([
+                'serial_number' => $request->serial_number,
+                'purchase_date' => $request->purchase_date,
+                'purchase_price' => $request->purchase_price,
+                'warranty_expiry' => $request->warranty_expiry,
+                'depreciation_method' => $request->depreciation_method,
+                'depreciation_rate' => $request->depreciation_rate,
+                'useful_life' => $request->useful_life,
+                'location' => $request->location,
+                'condition' => $request->condition,
+                'notes' => $request->notes,
+                'updated_by' => Auth::id(),
+            ]);
+
             DB::commit();
-            return redirect()->route('assets.index')->with('success', 'Asset account updated successfully.');
+            return redirect()->route('assets.index')->with('success', 'Asset updated successfully.');
         } catch (\Exception $e) {
             DB::rollBack();
-            return redirect()->back()->with('error', 'Error updating asset account: ' . $e->getMessage())->withInput();
+            return redirect()->back()->with('error', 'Error updating asset: ' . $e->getMessage())->withInput();
         }
     }
 
@@ -136,16 +185,18 @@ class AssetController extends Controller
                 throw new \Exception('Cannot delete asset with child accounts.');
             }
 
-            if ($asset->transactions()->exists()) {
+            if ($asset->assetTransactions()->exists()) {
                 throw new \Exception('Cannot delete asset with associated transactions.');
             }
 
+            $asset->assetDetails()->delete();
             $asset->delete();
+            
             DB::commit();
-            return redirect()->route('assets.index')->with('success', 'Asset account deleted successfully.');
+            return redirect()->route('assets.index')->with('success', 'Asset deleted successfully.');
         } catch (\Exception $e) {
             DB::rollBack();
-            return redirect()->back()->with('error', 'Error deleting asset account: ' . $e->getMessage());
+            return redirect()->back()->with('error', 'Error deleting asset: ' . $e->getMessage());
         }
     }
 
@@ -155,19 +206,18 @@ class AssetController extends Controller
     public function report()
     {
         $assets = ChartOfAccount::where('type_code', '01')
-            ->with(['children', 'parent'])
+            ->with(['children', 'parent', 'assetDetails'])
             ->orderBy('group_code')
             ->orderBy('class_code')
             ->orderBy('account_code')
             ->get();
 
         $assetCategories = config('accounting.asset_categories');
-        $groups = config('accounting.groups.01');
-        $classes = config('accounting.classes.01');
+        $assetGroups = config('accounting.asset_groups');
 
         // Group assets by category, group, class for reporting
         $report = $assets->groupBy(['group_code', 'class_code']);
 
-        return view('assets.report', compact('report', 'assetCategories', 'groups', 'classes'));
+        return view('assets.report', compact('report', 'assetCategories', 'assetGroups'));
     }
 }

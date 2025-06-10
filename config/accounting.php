@@ -145,7 +145,58 @@ return [
         '02' => 'Fixed Assets',
         '03' => 'Intangible Assets',
         '04' => 'Investments',
-        '05' => 'Other Assets'
+        '05' => 'Other Assets',
+        '06' => 'Prepaid Expenses',
+        '07' => 'Accounts Receivable',
+        '08' => 'Cash and Cash Equivalents',
+        '09' => 'Inventory',
+        '10' => 'Bank Accounts'
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Asset Groups
+    |--------------------------------------------------------------------------
+    |
+    | Define the groups for assets.
+    |
+    */
+    'asset_groups' => [
+        '01' => [ // Current Assets
+            '01' => 'Cash and Cash Equivalents',
+            '02' => 'Accounts Receivable',
+            '03' => 'Inventory',
+            '04' => 'Prepaid Expenses',
+            '05' => 'Other Current Assets'
+        ],
+        '02' => [ // Fixed Assets
+            '01' => 'Land',
+            '02' => 'Buildings',
+            '03' => 'Equipment',
+            '04' => 'Vehicles',
+            '05' => 'Furniture and Fixtures',
+            '06' => 'Computer Equipment',
+            '07' => 'Accumulated Depreciation'
+        ],
+        '03' => [ // Intangible Assets
+            '01' => 'Patents',
+            '02' => 'Trademarks',
+            '03' => 'Copyrights',
+            '04' => 'Goodwill',
+            '05' => 'Software'
+        ],
+        '04' => [ // Investments
+            '01' => 'Short-term Investments',
+            '02' => 'Long-term Investments',
+            '03' => 'Stocks',
+            '04' => 'Bonds'
+        ],
+        '05' => [ // Other Assets
+            '01' => 'Deferred Tax Assets',
+            '02' => 'Security Deposits',
+            '03' => 'Advances to Employees',
+            '04' => 'Other Non-current Assets'
+        ]
     ],
 
     /*

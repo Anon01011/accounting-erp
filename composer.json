@@ -7,11 +7,13 @@
     "license": "MIT",
     "require": {
         "php": "^8.2",
-        "barryvdh/laravel-dompdf": "^3.1",
+        "barryvdh/laravel-dompdf": "*",
         "consoletvs/charts": "^6.8",
         "laravel/framework": "^12.0",
         "laravel/sanctum": "^4.1",
-        "laravel/tinker": "^2.10.1"
+        "laravel/tinker": "^2.10.1",
+        "league/csv": "^9.23",
+        "maatwebsite/excel": "*"
     },
     "require-dev": {
         "fakerphp/faker": "^1.23",

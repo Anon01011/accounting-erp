@@ -22,6 +22,7 @@ class DatabaseSeeder extends Seeder
             QuotationSeeder::class,
             CustomerSeeder::class,
             SalesOrderSeeder::class,
+            AssetCategorySeeder::class,
         ]);
     }
 }
