@@ -1,0 +1,200 @@
+# .cursor
+# ERP Project Accounting Structure Rules
+
+[project_structure]
+# Directory Structure
+app/
+  ├── Models/
+  │   ├── Accounting/
+  │   │   ├── Account.php
+  │   │   ├── Transaction.php
+  │   │   ├── JournalEntry.php
+  │   │   └── Ledger.php
+  │   └── Traits/
+  │       └── HasAccounting.php
+  ├── Http/
+  │   ├── Controllers/
+  │   │   └── Accounting/
+  │   │       ├── ChartOfAccountsController.php
+  │   │       ├── TransactionController.php
+  │   │       └── ReportController.php
+  │   └── Requests/
+  │       └── Accounting/
+  │           ├── AccountRequest.php
+  │           └── TransactionRequest.php
+  └── Services/
+      └── Accounting/
+          ├── AccountService.php
+          └── TransactionService.php
+
+resources/
+  └── views/
+      └── accounting/
+          ├── accounts/
+          │   ├── index.blade.php
+          │   ├── create.blade.php
+          │   └── edit.blade.php
+          ├── transactions/
+          │   ├── index.blade.php
+          │   ├── create.blade.php
+          │   └── edit.blade.php
+          └── reports/
+              ├── balance-sheet.blade.php
+              ├── income-statement.blade.php
+              └── trial-balance.blade.php
+
+[accounting_structure]
+# Main Account Groups
+Assets = 1
+Liabilities = 2
+Capital = 3
+Income = 4
+Expense = 5
+
+# Account Type Codes
+[type_codes]
+Assets = 1
+Liabilities = 2
+Capital = 3
+Income = 4
+Expense = 5
+
+# Group Codes
+[group_codes]
+FixedAssets = 10
+CurrentAssets = 11
+CashAccounts = 12
+BankAccounts = 13
+StockInHand = 14
+CurrentLiabilities = 20
+Provisions = 21
+LongTermLoan = 22
+Equity = 30
+DirectIncome = 40
+IndirectIncome = 41
+DirectExpense = 50
+IndirectExpense = 51
+
+# Class Codes
+[class_codes]
+FixedAssets = 10
+Receivables = 11
+CashEquivalents = 12
+BankAccounts = 13
+Inventory = 14
+Payables = 20
+Provisions = 21
+LongTermLoan = 22
+Equity = 30
+DirectIncome = 40
+IndirectIncome = 41
+DirectExpense = 50
+IndirectExpense = 51
+
+[coding_conventions]
+# File Naming
+account_model = "{TypeCode}_{GroupCode}_{ClassCode}_{AccountCode}.php"
+account_controller = "{TypeCode}{GroupCode}{ClassCode}Controller.php"
+account_view = "{type_code}_{group_code}_{class_code}.blade.php"
+
+# Class Naming
+account_class = "{TypeName}{GroupCode}{ClassCode}{AccountCode}"
+service_class = "{TypeName}Service"
+repository_class = "{TypeName}Repository"
+
+# Database Tables
+account_table = "{type_code}_{group_code}_{class_code}"
+transaction_table = "transactions"
+journal_table = "journal_entries"
+ledger_table = "ledgers"
+
+# Code Comments
+account_comment = "@account {AccountCode} {AccountName}"
+transaction_comment = "@transaction {TransactionType} {AccountCode}"
+validation_comment = "@validation {FieldName} {Rules}"
+
+[features]
+# Core Accounting Features
+- Chart of Accounts Management
+- Double-Entry Bookkeeping
+- Journal Entries
+- General Ledger
+- Trial Balance
+- Financial Statements
+- Bank Reconciliation
+- Fixed Assets Management
+- Inventory Management
+- Accounts Receivable
+- Accounts Payable
+- Cash Management
+- Financial Reports
+
+[ui_components]
+# Reusable UI Components
+- AccountTreeView
+- TransactionForm
+- JournalEntryForm
+- LedgerView
+- BalanceSheetView
+- IncomeStatementView
+- TrialBalanceView
+- BankReconciliationView
+- FixedAssetsRegister
+- InventoryRegister
+
+[validation_rules]
+# Account Validation
+account_code = "required|string|size:5|unique:accounts"
+account_name = "required|string|max:255"
+account_type = "required|in:1,2,3,4,5"
+account_group = "required|string|size:2"
+account_class = "required|string|size:2"
+
+# Transaction Validation
+transaction_date = "required|date"
+transaction_type = "required|in:debit,credit"
+transaction_amount = "required|numeric|min:0"
+transaction_account = "required|exists:accounts,id"
+
+[search_patterns]
+# Quick Search Patterns
+search:Assets = files/classes tagged with Assets.*
+search:Liabilities = files/classes tagged with Liabilities.*
+search:Income = files/classes tagged with Income.*
+search:Expense = files/classes tagged with Expense.*
+search:Capital = files/classes tagged with Capital.*
+
+# Account Code Search
+search:11101 = files/classes tagged with Property, Plant and Equipment
+search:10101 = files/classes tagged with Prepayments A/c
+search:12101 = files/classes tagged with Cash and Cash Equivalents
+
+[development_workflow]
+# Development Steps
+1. Create database migrations
+2. Implement models with relationships
+3. Create controllers with CRUD operations
+4. Implement services for business logic
+5. Create views with reusable components
+6. Add validation and error handling
+7. Implement reporting features
+8. Add user interface improvements
+9. Write tests for all features
+10. Document the code and features
+
+[testing]
+# Test Categories
+- Unit Tests for Models
+- Feature Tests for Controllers
+- Integration Tests for Services
+- Browser Tests for UI Components
+- API Tests for Endpoints
+
+[documentation]
+# Documentation Requirements
+- API Documentation
+- Database Schema
+- Code Comments
+- User Manual
+- Technical Documentation
+- Deployment Guide 
