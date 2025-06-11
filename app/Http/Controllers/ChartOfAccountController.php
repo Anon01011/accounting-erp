@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\ChartOfAccount;
+use App\Models\JournalEntry;
 use App\Services\ChartOfAccountService;
 use App\Http\Requests\ChartOfAccountRequest;
 use Illuminate\Http\Request;
@@ -68,7 +69,7 @@ class ChartOfAccountController extends Controller
         try {
             $account = ChartOfAccount::create($validated);
             DB::commit();
-            return redirect()->route('chart-of-accounts.index')
+            return redirect()->route('chart-of-accounts.show', $account)
                 ->with('success', 'Account created successfully.');
         } catch (\Exception $e) {
             DB::rollBack();
@@ -81,28 +82,68 @@ class ChartOfAccountController extends Controller
     /**
      * Display the specified resource.
      */
-    public function show(ChartOfAccount $chartOfAccount)
+    public function show(ChartOfAccount $account)
     {
-        return view('chart-of-accounts.show', compact('chartOfAccount'));
+        // Load account with its relationships
+        $account->load(['parent', 'children']);
+
+        // Load account types from config
+        $accountTypes = config('accounting.account_types', []);
+        
+        // Load account groups for the current type
+        $accountGroups = [];
+        if ($account->type_code) {
+            $accountGroups = config('accounting.account_groups.' . $account->type_code, []);
+        }
+        
+        // Load account classes for the current type and group
+        $accountClasses = [];
+        if ($account->type_code && $account->group_code) {
+            $accountClasses = config('accounting.account_classes.' . $account->type_code . '.' . $account->group_code, []);
+        }
+
+        // Load recent journal entries for this account
+        $recentJournalEntries = JournalEntry::with(['items' => function($query) use ($account) {
+                $query->where('chart_of_account_id', $account->id);
+            }])
+            ->whereHas('items', function($query) use ($account) {
+                $query->where('chart_of_account_id', $account->id);
+            })
+            ->orderBy('entry_date', 'desc')
+            ->take(10)
+            ->get();
+
+        // Calculate account statistics
+        $account->total_debits = $account->items()->sum('debit');
+        $account->total_credits = $account->items()->sum('credit');
+        $account->current_balance = $account->total_debits - $account->total_credits;
+
+        return view('chart-of-accounts.show', compact(
+            'account',
+            'accountTypes',
+            'accountGroups',
+            'accountClasses',
+            'recentJournalEntries'
+        ));
     }
 
     /**
      * Show the form for editing the specified resource.
      */
-    public function edit(ChartOfAccount $chartOfAccount)
+    public function edit(ChartOfAccount $account)
     {
         $parentAccounts = ChartOfAccount::where('is_active', true)
-            ->where('id', '!=', $chartOfAccount->id)
+            ->where('id', '!=', $account->id)
             ->orderBy('name')
             ->get();
 
-        return view('chart-of-accounts.edit', compact('chartOfAccount', 'parentAccounts'));
+        return view('chart-of-accounts.edit', compact('account', 'parentAccounts'));
     }
 
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request, ChartOfAccount $chartOfAccount)
+    public function update(Request $request, ChartOfAccount $account)
     {
         $validated = $request->validate([
             'type_code' => 'required|string|max:2',
@@ -117,9 +158,9 @@ class ChartOfAccountController extends Controller
 
         DB::beginTransaction();
         try {
-            $chartOfAccount->update($validated);
+            $account->update($validated);
             DB::commit();
-            return redirect()->route('chart-of-accounts.index')
+            return redirect()->route('chart-of-accounts.show', $account)
                 ->with('success', 'Account updated successfully.');
         } catch (\Exception $e) {
             DB::rollBack();
@@ -132,21 +173,21 @@ class ChartOfAccountController extends Controller
     /**
      * Remove the specified resource from storage.
      */
-    public function destroy(ChartOfAccount $chartOfAccount)
+    public function destroy(ChartOfAccount $account)
     {
-        if ($chartOfAccount->children()->exists()) {
+        if ($account->children()->exists()) {
             return redirect()->route('chart-of-accounts.index')
                 ->with('error', 'Cannot delete account with child accounts.');
         }
 
-        if ($chartOfAccount->transactions()->exists()) {
+        if ($account->items()->exists()) {
             return redirect()->route('chart-of-accounts.index')
-                ->with('error', 'Cannot delete account with associated transactions.');
+                ->with('error', 'Cannot delete account with journal entries.');
         }
 
         DB::beginTransaction();
         try {
-            $chartOfAccount->delete();
+            $account->delete();
             DB::commit();
             return redirect()->route('chart-of-accounts.index')
                 ->with('success', 'Account deleted successfully.');

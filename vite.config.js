@@ -14,4 +14,11 @@ export default defineConfig({
         }),
         tailwindcss(),
     ],
+    server: {
+        https: true,
+        hmr: {
+            host: 'localhost',
+            protocol: 'wss'
+        }
+    }
 });

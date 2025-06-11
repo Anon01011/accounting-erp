@@ -422,4 +422,36 @@ class ChartOfAccountController extends Controller
             return response()->json(['message' => 'Template download failed: ' . $e->getMessage()], 500);
         }
     }
+
+    public function show(\App\Domains\Accounting\Models\ChartOfAccount $chart_of_account)
+    {
+        $account = $chart_of_account;
+        // Load relationships
+        $account->load(['parent', 'children']);
+
+        // Get related accounts (accounts with the same type, group, and class)
+$relatedAccounts = \App\Domains\Accounting\Models\ChartOfAccount::where('type_code', $account->type_code)
+            ->where('group_code', $account->group_code)
+            ->where('class_code', $account->class_code)
+            ->where('id', '!=', $account->id)
+            ->whereHas('journalEntries') // only accounts used in journal entries
+            ->orderBy('account_code')
+            ->take(5)
+            ->get();
+
+        // Get recent journal entries for this account via items
+        $recentJournalEntries = \App\Models\JournalEntry::whereHas('items', function($query) use ($account) {
+            $query->where('chart_of_account_id', $account->id);
+        })
+        ->latest('entry_date')
+        ->take(10)
+        ->get();
+
+        // Calculate stats using journal_entry_items
+        $account->total_debits = \App\Models\JournalEntryItem::where('chart_of_account_id', $account->id)->sum('debit');
+        $account->total_credits = \App\Models\JournalEntryItem::where('chart_of_account_id', $account->id)->sum('credit');
+        $account->current_balance = $account->total_debits - $account->total_credits;
+
+        return view('chart-of-accounts.show', compact('account', 'recentJournalEntries', 'relatedAccounts'));
+    }
 } 

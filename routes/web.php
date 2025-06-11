@@ -200,3 +200,7 @@ Route::middleware('auth')->group(function () {
     Route::resource('assets', AssetController::class);
     Route::get('/assets/{asset}/edit', [AssetController::class, 'edit'])->name('assets.edit');
 });
+
+Route::middleware(['auth'])->group(function () {
+    Route::resource('chart-of-accounts', ChartOfAccountController::class);
+});

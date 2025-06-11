@@ -6,6 +6,10 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use App\Models\JournalEntry;
+use App\Models\JournalEntryItem;
+use Illuminate\Database\Eloquent\Relations\HasManyThrough;
+
 use Illuminate\Support\Facades\DB;
 
 class ChartOfAccount extends Model
@@ -48,9 +52,17 @@ class ChartOfAccount extends Model
         return $this->hasMany(ChartOfAccount::class, 'parent_id');
     }
 
-    public function journalEntries(): HasMany
+
+public function journalEntries(): HasManyThrough
     {
-        return $this->hasMany(JournalEntry::class, 'account_id');
+        return $this->hasManyThrough(
+            JournalEntry::class,
+            JournalEntryItem::class,
+            'chart_of_account_id', // Foreign key on JournalEntryItem table...
+            'id', // Foreign key on JournalEntry table...
+            'id', // Local key on ChartOfAccount table...
+            'journal_entry_id' // Local key on JournalEntryItem table...
+        );
     }
 
     public function creator(): BelongsTo
