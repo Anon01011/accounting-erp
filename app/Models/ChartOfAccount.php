@@ -8,10 +8,11 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use App\Traits\AssetCalculations;
 
 class ChartOfAccount extends Model
 {
-    use HasFactory, SoftDeletes;
+    use HasFactory, SoftDeletes, AssetCalculations;
 
     protected $fillable = [
         'type_code',
@@ -243,9 +244,19 @@ class ChartOfAccount extends Model
         return $this->hasMany(AssetDetail::class, 'account_id');
     }
 
+    public function documents(): HasMany
+    {
+        return $this->hasMany(AssetDocument::class, 'asset_id');
+    }
+
     public function assetTransactions(): HasMany
     {
-        return $this->hasMany(AssetTransaction::class, 'account_id');
+        return $this->hasMany(AssetTransaction::class, 'asset_id');
+    }
+
+    public function maintenanceRecords(): HasMany
+    {
+        return $this->hasMany(AssetMaintenance::class, 'asset_id');
     }
 
     // Scopes

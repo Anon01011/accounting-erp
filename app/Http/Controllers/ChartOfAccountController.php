@@ -2,8 +2,9 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\ChartOfAccount;
+use App\Domains\Accounting\Models\ChartOfAccount;
 use App\Models\JournalEntry;
+use App\Models\JournalEntryItem;
 use App\Services\ChartOfAccountService;
 use App\Http\Requests\ChartOfAccountRequest;
 use Illuminate\Http\Request;
@@ -114,16 +115,67 @@ class ChartOfAccountController extends Controller
             ->get();
 
         // Calculate account statistics
-        $account->total_debits = $account->items()->sum('debit');
-        $account->total_credits = $account->items()->sum('credit');
+        $account->total_debits = JournalEntryItem::where('chart_of_account_id', $account->id)->sum('debit');
+        $account->total_credits = JournalEntryItem::where('chart_of_account_id', $account->id)->sum('credit');
         $account->current_balance = $account->total_debits - $account->total_credits;
+
+        // Fetch related accounts
+        $relatedAccounts = ChartOfAccount::where(function($query) use ($account) {
+                // Same type and group but different account
+                $query->where('type_code', $account->type_code)
+                      ->where('group_code', $account->group_code)
+                      ->where('id', '!=', $account->id);
+            })
+            ->orWhere(function($query) use ($account) {
+                // Parent account if exists
+                if ($account->parent_id) {
+                    $query->where('id', $account->parent_id);
+                }
+            })
+            ->orWhere(function($query) use ($account) {
+                // Child accounts
+                $query->where('parent_id', $account->id);
+            })
+            ->orWhere(function($query) use ($account) {
+                // Accounts that frequently appear in the same journal entries
+                $query->whereIn('id', function($subquery) use ($account) {
+                    $subquery->select('chart_of_account_id')
+                        ->from('journal_entry_items')
+                        ->whereIn('journal_entry_id', function($q) use ($account) {
+                            $q->select('journal_entry_id')
+                                ->from('journal_entry_items')
+                                ->where('chart_of_account_id', $account->id);
+                        })
+                        ->where('chart_of_account_id', '!=', $account->id)
+                        ->groupBy('chart_of_account_id')
+                        ->havingRaw('COUNT(*) > 1');
+                });
+            })
+            ->withCount(['items' => function($query) {
+                $query->where('created_at', '>=', now()->subMonths(3));
+            }])
+            ->orderBy('items_count', 'desc')
+            ->take(5)
+            ->get();
+
+        // Fallback: if no related accounts found, show top 5 most active accounts (excluding current)
+        if ($relatedAccounts->isEmpty()) {
+            $relatedAccounts = ChartOfAccount::where('id', '!=', $account->id)
+                ->withCount(['items' => function($query) {
+                    $query->where('created_at', '>=', now()->subMonths(3));
+                }])
+                ->orderBy('items_count', 'desc')
+                ->take(5)
+                ->get();
+        }
 
         return view('chart-of-accounts.show', compact(
             'account',
             'accountTypes',
             'accountGroups',
             'accountClasses',
-            'recentJournalEntries'
+            'recentJournalEntries',
+            'relatedAccounts'
         ));
     }
 

@@ -52,8 +52,12 @@ class ChartOfAccount extends Model
         return $this->hasMany(ChartOfAccount::class, 'parent_id');
     }
 
+    public function assetDetails(): HasOne
+    {
+        return $this->hasOne(\App\Models\AssetDetail::class, 'account_id');
+    }
 
-public function journalEntries(): HasManyThrough
+    public function journalEntries(): HasManyThrough
     {
         return $this->hasManyThrough(
             JournalEntry::class,

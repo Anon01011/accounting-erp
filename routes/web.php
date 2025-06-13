@@ -41,6 +41,7 @@ use App\Http\Controllers\Settings\SecurityController;
 use App\Http\Controllers\Settings\LocalizationController;
 use App\Http\Controllers\Sales\SalesReturnController;
 use App\Http\Controllers\Asset\CategoryController as AssetCategoryController;
+use App\Http\Controllers\AssetDocumentController;
 
 // Redirect root to login
 Route::get('/', function () {
@@ -69,10 +70,11 @@ Route::middleware('auth')->group(function () {
         Route::get('/', [ChartOfAccountController::class, 'index'])->name('index');
         Route::get('/create', [ChartOfAccountController::class, 'create'])->name('create');
         Route::post('/', [ChartOfAccountController::class, 'store'])->name('store');
-        Route::get('/{account}/edit', [ChartOfAccountController::class, 'edit'])->name('edit');
-        Route::put('/{account}', [ChartOfAccountController::class, 'update'])->name('update');
-        Route::delete('/{account}', [ChartOfAccountController::class, 'destroy'])->name('destroy');
-        Route::post('/{account}/status', [ChartOfAccountController::class, 'updateStatus'])->name('status');
+        Route::get('/{chart_of_account}', [ChartOfAccountController::class, 'show'])->name('show');
+        Route::get('/{chart_of_account}/edit', [ChartOfAccountController::class, 'edit'])->name('edit');
+        Route::put('/{chart_of_account}', [ChartOfAccountController::class, 'update'])->name('update');
+        Route::delete('/{chart_of_account}', [ChartOfAccountController::class, 'destroy'])->name('destroy');
+        Route::post('/{chart_of_account}/status', [ChartOfAccountController::class, 'updateStatus'])->name('status');
         
         // New routes for import/export
         Route::post('/import', [ChartOfAccountController::class, 'import'])->name('import');
@@ -191,16 +193,28 @@ Route::middleware('auth')->group(function () {
     });
 
     // Assets Routes
-    // Asset Categories - Define this BEFORE the assets resource route
     Route::prefix('assets')->name('assets.')->group(function () {
+        // Main asset routes
+        Route::get('/', [AssetController::class, 'index'])->name('index');
+        Route::get('/create', [AssetController::class, 'create'])->name('create');
+        Route::post('/', [AssetController::class, 'store'])->name('store');
+        Route::get('/{asset}', [AssetController::class, 'show'])->name('show');
+        Route::get('/{asset}/edit', [AssetController::class, 'edit'])->name('edit');
+        Route::put('/{asset}', [AssetController::class, 'update'])->name('update');
+        Route::delete('/{asset}', [AssetController::class, 'destroy'])->name('destroy');
+        
+        // Additional asset routes
+        Route::post('/{asset}/depreciation', [AssetController::class, 'calculateDepreciation'])->name('depreciation');
+        Route::post('/{asset}/maintenance', [AssetController::class, 'recordMaintenance'])->name('maintenance');
+        Route::post('/{asset}/dispose', [AssetController::class, 'dispose'])->name('dispose');
+        Route::get('/report', [AssetController::class, 'report'])->name('report');
+        
+        // Asset categories
         Route::resource('categories', AssetCategoryController::class);
+        
+        // Document routes
+        Route::post('/{asset}/documents', [AssetDocumentController::class, 'store'])->name('documents.store');
+        Route::get('/documents/{document}/download', [AssetDocumentController::class, 'download'])->name('documents.download');
+        Route::delete('/documents/{document}', [AssetDocumentController::class, 'destroy'])->name('documents.destroy');
     });
-
-    // Assets resource route
-    Route::resource('assets', AssetController::class);
-    Route::get('/assets/{asset}/edit', [AssetController::class, 'edit'])->name('assets.edit');
-});
-
-Route::middleware(['auth'])->group(function () {
-    Route::resource('chart-of-accounts', ChartOfAccountController::class);
 });

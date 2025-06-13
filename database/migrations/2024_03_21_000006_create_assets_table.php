@@ -19,8 +19,8 @@ return new class extends Migration
             $table->text('description')->nullable();
             $table->date('purchase_date')->nullable();
             $table->decimal('purchase_price', 15, 2)->default(0);
-                $table->decimal('accumulated_depreciation', 15, 2)->default(0);
-                $table->decimal('current_value', 15, 2)->default(0);
+            $table->decimal('accumulated_depreciation', 15, 2)->default(0);
+            $table->decimal('current_value', 15, 2)->default(0);
             $table->boolean('status')->default(true);
                 $table->foreignId('created_by')->nullable()->constrained('users')->onDelete('restrict');
                 $table->foreignId('updated_by')->nullable()->constrained('users')->onDelete('restrict');
