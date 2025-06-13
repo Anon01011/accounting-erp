@@ -148,65 +148,210 @@
                         @enderror
                     </div>
 
-                    <!-- Current Value -->
+                    <!-- Acquisition Cost -->
                     <div>
-                        <label for="current_value" class="block text-sm font-medium text-gray-700 mb-2">Current Value</label>
+                        <label for="acquisition_cost" class="block text-sm font-medium text-gray-700 mb-2">Acquisition Cost</label>
                         <div class="relative rounded-md shadow-sm">
                             <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
                                 <i class="fas fa-dollar-sign text-gray-400"></i>
                             </div>
-                            <input type="number" name="current_value" id="current_value" step="0.01" required
+                            <input type="number" name="acquisition_cost" id="acquisition_cost" step="0.01" required
                                 class="h-12 block w-full pl-12 pr-4 sm:text-sm rounded-md border border-[#1b758c] focus:ring-[#1b758c] focus:border-[#1b758c] transition duration-150 ease-in-out"
-                                value="{{ old('current_value', $asset->current_value) }}">
+                                value="{{ old('acquisition_cost', $asset->acquisition_cost) }}">
                         </div>
-                        @error('current_value')
+                        @error('acquisition_cost')
+                            <p class="mt-2 text-sm text-red-600">{{ $message }}</p>
+                        @enderror
+                    </div>
+
+                    <!-- Salvage Value -->
+                    <div>
+                        <label for="salvage_value" class="block text-sm font-medium text-gray-700 mb-2">Salvage Value</label>
+                        <div class="relative rounded-md shadow-sm">
+                            <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                                <i class="fas fa-dollar-sign text-gray-400"></i>
+                            </div>
+                            <input type="number" name="salvage_value" id="salvage_value" step="0.01" required
+                                class="h-12 block w-full pl-12 pr-4 sm:text-sm rounded-md border border-[#1b758c] focus:ring-[#1b758c] focus:border-[#1b758c] transition duration-150 ease-in-out"
+                                value="{{ old('salvage_value', $asset->salvage_value) }}">
+                        </div>
+                        @error('salvage_value')
+                            <p class="mt-2 text-sm text-red-600">{{ $message }}</p>
+                        @enderror
+                    </div>
+                </div>
+
+                <!-- Asset Details -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    <!-- Serial Number -->
+                    <div>
+                        <label for="details[serial_number]" class="block text-sm font-medium text-gray-700 mb-2">Serial Number</label>
+                        <div class="relative rounded-md shadow-sm">
+                            <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                                <i class="fas fa-barcode text-gray-400"></i>
+                            </div>
+                            <input type="text" name="details[serial_number]" id="details[serial_number]"
+                                class="h-12 block w-full pl-12 pr-4 sm:text-sm rounded-md border border-[#1b758c] focus:ring-[#1b758c] focus:border-[#1b758c] transition duration-150 ease-in-out"
+                                value="{{ old('details.serial_number', $details->serial_number ?? '') }}">
+                        </div>
+                        @error('details.serial_number')
                             <p class="mt-2 text-sm text-red-600">{{ $message }}</p>
                         @enderror
                     </div>
 
                     <!-- Supplier -->
                     <div>
-                        <label for="supplier_id" class="block text-sm font-medium text-gray-700 mb-2">Supplier</label>
+                        <label for="details[supplier]" class="block text-sm font-medium text-gray-700 mb-2">Supplier</label>
                         <div class="relative rounded-md shadow-sm">
                             <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
                                 <i class="fas fa-truck text-gray-400"></i>
                             </div>
-                            <select name="supplier_id" id="supplier_id" required
+                            <select name="details[supplier]" id="details[supplier]" required
                                 class="h-12 block w-full pl-12 pr-4 sm:text-sm rounded-md border border-[#1b758c] focus:ring-[#1b758c] focus:border-[#1b758c] transition duration-150 ease-in-out">
                                 <option value="">Select Supplier</option>
                                 @foreach($suppliers as $supplier)
-                                    <option value="{{ $supplier->id }}" {{ old('supplier_id', $asset->supplier_id) == $supplier->id ? 'selected' : '' }}>{{ $supplier->name }}</option>
+                                    <option value="{{ $supplier->name }}" {{ old('details.supplier', optional($details)->supplier) == $supplier->name ? 'selected' : '' }}>{{ $supplier->name }}</option>
                                 @endforeach
                             </select>
                         </div>
-                        @error('supplier_id')
+                        @error('details.supplier')
                             <p class="mt-2 text-sm text-red-600">{{ $message }}</p>
                         @enderror
                     </div>
 
-                    <!-- Tax Group -->
+                    <!-- Warranty Period -->
                     <div>
-                        <label for="tax_group_id" class="block text-sm font-medium text-gray-700 mb-2">Tax Group</label>
+                        <label for="details[warranty_period]" class="block text-sm font-medium text-gray-700 mb-2">Warranty Period</label>
+                        <div class="relative rounded-md shadow-sm">
+                            <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                                <i class="fas fa-shield-alt text-gray-400"></i>
+                            </div>
+                            <input type="text" name="details[warranty_period]" id="details[warranty_period]"
+                                class="h-12 block w-full pl-12 pr-4 sm:text-sm rounded-md border border-[#1b758c] focus:ring-[#1b758c] focus:border-[#1b758c] transition duration-150 ease-in-out"
+                                value="{{ old('details.warranty_period', $details->warranty_period ?? '') }}">
+                        </div>
+                        @error('details.warranty_period')
+                            <p class="mt-2 text-sm text-red-600">{{ $message }}</p>
+                        @enderror
+                    </div>
+
+                    <!-- Warranty Expiry -->
+                    <div>
+                        <label for="details[warranty_expiry]" class="block text-sm font-medium text-gray-700 mb-2">Warranty Expiry</label>
+                        <div class="relative rounded-md shadow-sm">
+                            <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                                <i class="fas fa-calendar-alt text-gray-400"></i>
+                            </div>
+                            <input type="date" name="details[warranty_expiry]" id="details[warranty_expiry]"
+                                class="h-12 block w-full pl-12 pr-4 sm:text-sm rounded-md border border-[#1b758c] focus:ring-[#1b758c] focus:border-[#1b758c] transition duration-150 ease-in-out"
+                                value="{{ old('details.warranty_expiry', optional($details)->warranty_expiry ? $details->warranty_expiry->format('Y-m-d') : '') }}">
+                        </div>
+                        @error('details.warranty_expiry')
+                            <p class="mt-2 text-sm text-red-600">{{ $message }}</p>
+                        @enderror
+                    </div>
+
+                    <!-- Depreciation Method -->
+                    <div>
+                        <label for="details[depreciation_method]" class="block text-sm font-medium text-gray-700 mb-2">Depreciation Method</label>
+                        <div class="relative rounded-md shadow-sm">
+                            <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                                <i class="fas fa-calculator text-gray-400"></i>
+                            </div>
+                            <select name="details[depreciation_method]" id="details[depreciation_method]" required
+                                class="h-12 block w-full pl-12 pr-4 sm:text-sm rounded-md border border-[#1b758c] focus:ring-[#1b758c] focus:border-[#1b758c] transition duration-150 ease-in-out">
+                                <option value="">Select Method</option>
+                                @foreach($depreciationMethods as $key => $value)
+                                    <option value="{{ $key }}" {{ old('details.depreciation_method', $details->depreciation_method ?? '') == $key ? 'selected' : '' }}>{{ $value }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        @error('details.depreciation_method')
+                            <p class="mt-2 text-sm text-red-600">{{ $message }}</p>
+                        @enderror
+                    </div>
+
+                    <!-- Depreciation Rate -->
+                    <div>
+                        <label for="details[depreciation_rate]" class="block text-sm font-medium text-gray-700 mb-2">Depreciation Rate (%)</label>
                         <div class="relative rounded-md shadow-sm">
                             <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
                                 <i class="fas fa-percentage text-gray-400"></i>
                             </div>
-                            <select name="tax_group_id" id="tax_group_id" required
+                            <input type="number" name="details[depreciation_rate]" id="details[depreciation_rate]" step="0.01" required
+                                class="h-12 block w-full pl-12 pr-4 sm:text-sm rounded-md border border-[#1b758c] focus:ring-[#1b758c] focus:border-[#1b758c] transition duration-150 ease-in-out"
+                                value="{{ old('details.depreciation_rate', $details->depreciation_rate ?? '') }}">
+                        </div>
+                        @error('details.depreciation_rate')
+                            <p class="mt-2 text-sm text-red-600">{{ $message }}</p>
+                        @enderror
+                    </div>
+
+                    <!-- Useful Life -->
+                    <div>
+                        <label for="details[useful_life]" class="block text-sm font-medium text-gray-700 mb-2">Useful Life (Years)</label>
+                        <div class="relative rounded-md shadow-sm">
+                            <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                                <i class="fas fa-clock text-gray-400"></i>
+                            </div>
+                            <input type="number" name="details[useful_life]" id="details[useful_life]" required
+                                class="h-12 block w-full pl-12 pr-4 sm:text-sm rounded-md border border-[#1b758c] focus:ring-[#1b758c] focus:border-[#1b758c] transition duration-150 ease-in-out"
+                                value="{{ old('details.useful_life', $details->useful_life ?? '') }}">
+                        </div>
+                        @error('details.useful_life')
+                            <p class="mt-2 text-sm text-red-600">{{ $message }}</p>
+                        @enderror
+                    </div>
+
+                    <!-- Residual Value -->
+                    <div>
+                        <label for="details[residual_value]" class="block text-sm font-medium text-gray-700 mb-2">Residual Value</label>
+                        <div class="relative rounded-md shadow-sm">
+                            <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                                <i class="fas fa-dollar-sign text-gray-400"></i>
+                            </div>
+                            <input type="number" name="details[residual_value]" id="details[residual_value]" step="0.01" required
+                                class="h-12 block w-full pl-12 pr-4 sm:text-sm rounded-md border border-[#1b758c] focus:ring-[#1b758c] focus:border-[#1b758c] transition duration-150 ease-in-out"
+                                value="{{ old('details.residual_value', $details->residual_value ?? '') }}">
+                        </div>
+                        @error('details.residual_value')
+                            <p class="mt-2 text-sm text-red-600">{{ $message }}</p>
+                        @enderror
+                    </div>
+
+                    <!-- Condition -->
+                    <div>
+                        <label for="details[condition]" class="block text-sm font-medium text-gray-700 mb-2">Condition</label>
+                        <div class="relative rounded-md shadow-sm">
+                            <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                                <i class="fas fa-tachometer-alt text-gray-400"></i>
+                            </div>
+                            <select name="details[condition]" id="details[condition]" required
                                 class="h-12 block w-full pl-12 pr-4 sm:text-sm rounded-md border border-[#1b758c] focus:ring-[#1b758c] focus:border-[#1b758c] transition duration-150 ease-in-out">
-                                <option value="">Select Tax Group</option>
-                                @foreach($taxGroups as $taxGroup)
-                                    <option value="{{ $taxGroup->id }}" {{ old('tax_group_id', $asset->tax_group_id) == $taxGroup->id ? 'selected' : '' }}>{{ $taxGroup->name }}</option>
+                                <option value="">Select Condition</option>
+                                @foreach($conditions as $key => $value)
+                                    <option value="{{ $key }}" {{ old('details.condition', $details->condition ?? '') == $key ? 'selected' : '' }}>{{ $value }}</option>
                                 @endforeach
                             </select>
                         </div>
-                        @error('tax_group_id')
+                        @error('details.condition')
                             <p class="mt-2 text-sm text-red-600">{{ $message }}</p>
                         @enderror
                     </div>
                 </div>
 
-                <!-- Warranty, Depreciation, and Other Fields (copy from create view as needed) -->
-                <!-- ... (copy the rest of the fields and structure from create.blade.php) ... -->
+                <!-- Notes -->
+                <div class="md:col-span-2">
+                    <label for="details[notes]" class="block text-sm font-medium text-gray-700 mb-2">Notes</label>
+                    <div class="mt-1">
+                        <textarea name="details[notes]" id="details[notes]" rows="3"
+                            class="block w-full px-4 py-3 sm:text-sm rounded-md border border-[#1b758c] focus:ring-[#1b758c] focus:border-[#1b758c] transition duration-150 ease-in-out"
+                            >{{ old('details.notes', $details->notes ?? '') }}</textarea>
+                    </div>
+                    @error('details.notes')
+                        <p class="mt-2 text-sm text-red-600">{{ $message }}</p>
+                    @enderror
+                </div>
 
                 <div class="flex justify-end space-x-4">
                     <a href="{{ route('assets.index') }}"

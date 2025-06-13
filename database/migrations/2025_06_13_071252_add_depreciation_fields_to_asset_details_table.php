@@ -13,7 +13,7 @@ return new class extends Migration
     {
         Schema::table('asset_details', function (Blueprint $table) {
             if (!Schema::hasColumn('asset_details', 'depreciation_method')) {
-                $table->string('depreciation_method')->default('straight_line')->after('warranty_expiry');
+                $table->string('depreciation_method')->nullable()->after('warranty_expiry');
             }
             if (!Schema::hasColumn('asset_details', 'depreciation_rate')) {
                 $table->decimal('depreciation_rate', 5, 2)->default(0)->after('depreciation_method');
@@ -21,8 +21,20 @@ return new class extends Migration
             if (!Schema::hasColumn('asset_details', 'useful_life')) {
                 $table->integer('useful_life')->default(0)->after('depreciation_rate');
             }
+            if (!Schema::hasColumn('asset_details', 'residual_value')) {
+                $table->decimal('residual_value', 15, 2)->default(0)->after('useful_life');
+            }
+            if (!Schema::hasColumn('asset_details', 'revaluation_frequency')) {
+                $table->string('revaluation_frequency')->nullable()->after('residual_value');
+            }
+            if (!Schema::hasColumn('asset_details', 'depreciation_start_date')) {
+                $table->date('depreciation_start_date')->nullable()->after('revaluation_frequency');
+            }
             if (!Schema::hasColumn('asset_details', 'location')) {
-                $table->string('location')->nullable()->after('useful_life');
+                $table->string('location')->nullable()->after('depreciation_start_date');
+            }
+            if (!Schema::hasColumn('asset_details', 'condition')) {
+                $table->string('condition')->nullable()->after('location');
             }
         });
     }
@@ -37,7 +49,11 @@ return new class extends Migration
                 'depreciation_method',
                 'depreciation_rate',
                 'useful_life',
-                'location'
+                'residual_value',
+                'revaluation_frequency',
+                'depreciation_start_date',
+                'location',
+                'condition'
             ]);
         });
     }

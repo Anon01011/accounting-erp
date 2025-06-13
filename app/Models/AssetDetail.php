@@ -16,13 +16,18 @@ class AssetDetail extends Model
     protected $fillable = [
         'asset_id',
         'serial_number',
-        'model',
-        'manufacturer',
-        'supplier',
         'purchase_date',
         'purchase_price',
+        'supplier',
         'warranty_period',
         'warranty_expiry',
+        'depreciation_method',
+        'depreciation_rate',
+        'useful_life',
+        'residual_value',
+        'revaluation_frequency',
+        'depreciation_start_date',
+        'location',
         'condition',
         'notes',
         'created_by',
@@ -32,7 +37,10 @@ class AssetDetail extends Model
     protected $casts = [
         'purchase_date' => 'date',
         'warranty_expiry' => 'date',
-        'purchase_price' => 'decimal:2'
+        'depreciation_start_date' => 'date',
+        'purchase_price' => 'decimal:2',
+        'depreciation_rate' => 'decimal:2',
+        'residual_value' => 'decimal:2'
     ];
 
     // Constants

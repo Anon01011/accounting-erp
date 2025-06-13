@@ -202,9 +202,25 @@
                         @enderror
                     </div>
 
+                    <!-- Warranty Period -->
+                    <div>
+                        <label for="warranty_period" class="block text-sm font-medium text-gray-700 mb-2">Warranty Period (Months)</label>
+                        <div class="relative rounded-md shadow-sm">
+                            <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                                <i class="fas fa-shield-alt text-gray-400"></i>
+                            </div>
+                            <input type="number" name="warranty_period" id="warranty_period" min="0"
+                                class="h-12 block w-full pl-12 pr-4 sm:text-sm rounded-md border border-[#1b758c] focus:ring-[#1b758c] focus:border-[#1b758c] transition duration-150 ease-in-out"
+                                placeholder="Enter warranty period in months">
+                        </div>
+                        @error('warranty_period')
+                            <p class="mt-2 text-sm text-red-600">{{ $message }}</p>
+                        @enderror
+                    </div>
+
                     <!-- Warranty Expiry -->
                     <div>
-                        <label for="warranty_expiry" class="block text-sm font-medium text-gray-700 mb-2">Warranty Expiry</label>
+                        <label for="warranty_expiry" class="block text-sm font-medium text-gray-700 mb-2">Warranty Expiry (Optional if period is set)</label>
                         <div class="relative rounded-md shadow-sm">
                             <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
                                 <i class="fas fa-calendar-check text-gray-400"></i>

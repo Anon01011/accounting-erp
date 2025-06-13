@@ -8,28 +8,42 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::create('assets', function (Blueprint $table) {
-            $table->id();
-            $table->string('name');
-            $table->string('code')->unique();
-            $table->foreignId('category_id')->constrained('asset_categories');
-            $table->text('description')->nullable();
-            $table->date('purchase_date');
-            $table->decimal('purchase_price', 15, 2);
-            $table->decimal('current_value', 15, 2);
-            $table->string('location');
-            $table->enum('status', ['active', 'inactive', 'maintenance', 'disposed'])->default('active');
-            $table->foreignId('supplier_id')->constrained('suppliers');
-            $table->foreignId('tax_group_id')->constrained('tax_groups');
-            $table->date('warranty_expiry')->nullable();
-            $table->enum('depreciation_method', ['straight_line', 'declining_balance', 'sum_of_years']);
-            $table->decimal('depreciation_rate', 5, 2);
-            $table->integer('useful_life');
-            $table->text('notes')->nullable();
-            $table->boolean('is_active')->default(true);
-            $table->timestamps();
-            $table->softDeletes();
-        });
+        if (!Schema::hasTable('assets')) {
+            Schema::create('assets', function (Blueprint $table) {
+                $table->id();
+                $table->foreignId('chart_of_account_id')->constrained('chart_of_accounts')->onDelete('restrict');
+                $table->string('name');
+                $table->string('code')->unique();
+                $table->foreignId('category_id')->constrained('asset_categories')->onDelete('restrict');
+                $table->foreignId('warehouse_id')->nullable()->constrained('warehouses')->onDelete('restrict');
+                $table->text('description')->nullable();
+                $table->date('purchase_date')->nullable();
+                $table->decimal('purchase_price', 15, 2)->default(0);
+                $table->decimal('acquisition_cost', 15, 2)->default(0);
+                $table->decimal('salvage_value', 15, 2)->default(0);
+                $table->decimal('accumulated_depreciation', 15, 2)->default(0);
+                $table->decimal('current_value', 15, 2)->default(0);
+                $table->date('disposal_date')->nullable();
+                $table->decimal('disposal_value', 15, 2)->default(0);
+                $table->string('disposal_method')->nullable();
+                $table->string('tax_depreciation_method')->nullable();
+                $table->decimal('tax_depreciation_rate', 5, 2)->default(0);
+                $table->integer('tax_useful_life')->default(0);
+                $table->decimal('tax_accumulated_depreciation', 15, 2)->default(0);
+                $table->decimal('tax_current_value', 15, 2)->default(0);
+                $table->boolean('status')->default(true);
+                $table->foreignId('created_by')->nullable()->constrained('users')->onDelete('restrict');
+                $table->foreignId('updated_by')->nullable()->constrained('users')->onDelete('restrict');
+                $table->timestamps();
+                $table->softDeletes();
+
+                // Indexes
+                $table->index('code');
+                $table->index('purchase_date');
+                $table->index('disposal_date');
+                $table->index('status');
+            });
+        }
     }
 
     public function down(): void

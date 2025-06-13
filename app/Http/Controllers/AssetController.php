@@ -16,6 +16,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
+use Carbon\Carbon;
 
 class AssetController extends Controller
 {
@@ -109,56 +110,86 @@ class AssetController extends Controller
                 'purchase_price' => 'required|numeric|min:0',
                 'current_value' => 'required|numeric|min:0',
                 'location' => 'required|string|max:255',
-                'status' => 'required|in:active,inactive,maintenance,disposed',
+                'status' => 'required|in:active,inactive',
                 'supplier_id' => 'required|exists:suppliers,id',
                 'tax_group_id' => 'required|exists:tax_groups,id',
+                'warranty_period' => 'nullable|integer|min:0',
                 'warranty_expiry' => 'nullable|date',
-                'depreciation_method' => 'required|in:straight_line,declining_balance,sum_of_years',
+                'depreciation_method' => 'required|in:straight_line,declining_balance,sum_of_years_digits,units_of_production',
                 'depreciation_rate' => 'required|numeric|min:0|max:100',
                 'useful_life' => 'required|integer|min:1',
-                'notes' => 'nullable|string',
-                'is_active' => 'boolean',
+                'notes' => 'nullable|string'
             ]);
             Log::info('Validation passed', ['validated' => $validated]);
 
             DB::beginTransaction();
 
+            // Get category for code generation
             $category = AssetCategory::findOrFail($validated['category_id']);
             Log::info('Category found', ['category' => $category]);
 
-            $code = $this->generateAssetCode($category);
-            Log::info('Generated asset code', ['code' => $code]);
+            // Generate asset code
+            $categoryPrefix = $category->code;
+            Log::info('Category prefix: ' . $categoryPrefix);
 
-            // Map status string to integer for DB
-            $statusMap = [
-                'active' => 1,
-                'inactive' => 0,
-                'maintenance' => 2,
-                'disposed' => 3,
-            ];
-            $statusValue = $statusMap[$validated['status']] ?? 0;
+            // Get the last asset code for this category
+            $lastAsset = Asset::where('code', 'like', $categoryPrefix . '-%')
+                ->orderBy('code', 'desc')
+                ->first();
 
+            $lastNumber = $lastAsset ? (int)substr($lastAsset->code, strrpos($lastAsset->code, '-') + 1) : 0;
+            $newNumber = $lastNumber + 1;
+            $assetCode = $categoryPrefix . '-' . str_pad($newNumber, 3, '0', STR_PAD_LEFT);
+
+            Log::info('Generated asset code', ['code' => $assetCode]);
+
+            // Calculate warranty expiry if warranty period is provided
+            $warrantyExpiry = null;
+            if (!empty($validated['warranty_period'])) {
+                $warrantyPeriod = (int)$validated['warranty_period'];
+                $purchaseDate = Carbon::parse($validated['purchase_date']);
+                $warrantyExpiry = $purchaseDate->copy()->addMonths($warrantyPeriod);
+            } elseif (!empty($validated['warranty_expiry'])) {
+                $warrantyExpiry = Carbon::parse($validated['warranty_expiry']);
+            }
+
+            // Create the asset
             $asset = Asset::create([
                 'name' => $validated['name'],
-                'code' => $code,
+                'code' => $assetCode,
                 'category_id' => $validated['category_id'],
                 'chart_of_account_id' => $validated['chart_of_account_id'],
                 'description' => $validated['description'],
                 'purchase_date' => $validated['purchase_date'],
-                'purchase_price' => $validated['purchase_price'],
-                'current_value' => $validated['current_value'],
+                'purchase_price' => (float)$validated['purchase_price'],
+                'current_value' => (float)$validated['current_value'],
                 'location' => $validated['location'],
-                'status' => $statusValue,
+                'status' => $validated['status'] === 'active' ? 1 : 0,
                 'supplier_id' => $validated['supplier_id'],
                 'tax_group_id' => $validated['tax_group_id'],
-                'warranty_expiry' => $validated['warranty_expiry'],
+                'warranty_expiry' => $warrantyExpiry,
                 'depreciation_method' => $validated['depreciation_method'],
-                'depreciation_rate' => $validated['depreciation_rate'],
-                'useful_life' => $validated['useful_life'],
+                'depreciation_rate' => (float)$validated['depreciation_rate'],
+                'useful_life' => (int)$validated['useful_life'],
                 'notes' => $validated['notes'],
-                'is_active' => $validated['is_active'] ?? true,
+                'is_active' => true
             ]);
             Log::info('Asset created', ['asset' => $asset]);
+
+            // Create asset details
+            $asset->details()->create([
+                'purchase_date' => $validated['purchase_date'],
+                'purchase_price' => (float)$validated['purchase_price'],
+                'warranty_period' => (int)$validated['warranty_period'],
+                'warranty_expiry' => $warrantyExpiry,
+                'depreciation_method' => $validated['depreciation_method'],
+                'depreciation_rate' => (float)$validated['depreciation_rate'],
+                'useful_life' => (int)$validated['useful_life'],
+                'depreciation_start_date' => $validated['purchase_date'],
+                'depreciation_end_date' => Carbon::parse($validated['purchase_date'])->addYears((int)$validated['useful_life']),
+                'created_by' => auth()->id(),
+                'updated_by' => auth()->id()
+            ]);
 
             DB::commit();
             Log::info('Transaction committed');
@@ -233,84 +264,95 @@ class AssetController extends Controller
 
     public function update(Request $request, Asset $asset)
     {
-        $validated = $request->validate([
-            'chart_of_account_id' => 'required|exists:chart_of_accounts,id',
-            'name' => 'required|string|max:255',
-            'code' => 'required|string|max:50|unique:assets,code,' . $asset->id,
-            'category_id' => 'required|exists:asset_categories,id',
-            'warehouse_id' => 'nullable|exists:warehouses,id',
-            'description' => 'nullable|string',
-            'purchase_date' => 'nullable|date',
-            'purchase_price' => 'required|numeric|min:0',
-            'acquisition_cost' => 'required|numeric|min:0',
-            'salvage_value' => 'required|numeric|min:0',
-            'tax_depreciation_method' => 'nullable|string',
-            'tax_depreciation_rate' => 'nullable|numeric|min:0|max:100',
-            'tax_useful_life' => 'nullable|integer|min:0',
-            'details' => 'required|array',
-            'details.serial_number' => 'nullable|string|max:100',
-            'details.supplier' => 'nullable|string|max:255',
-            'details.warranty_period' => 'nullable|string|max:50',
-            'details.warranty_expiry' => 'nullable|date',
-            'details.depreciation_method' => 'required|string',
-            'details.depreciation_rate' => 'required|numeric|min:0|max:100',
-            'details.useful_life' => 'required|integer|min:0',
-            'details.residual_value' => 'required|numeric|min:0',
-            'details.revaluation_frequency' => 'nullable|string',
-            'details.depreciation_start_date' => 'nullable|date',
-            'details.location' => 'nullable|string|max:255',
-            'details.condition' => 'required|string',
-            'details.notes' => 'nullable|string'
-        ]);
-
-        DB::beginTransaction();
         try {
-            $asset->update([
-                'chart_of_account_id' => $validated['chart_of_account_id'],
-                'name' => $validated['name'],
-                'code' => $validated['code'],
-                'category_id' => $validated['category_id'],
-                'warehouse_id' => $validated['warehouse_id'],
-                'description' => $validated['description'],
-                'purchase_date' => $validated['purchase_date'],
-                'purchase_price' => $validated['purchase_price'],
-                'acquisition_cost' => $validated['acquisition_cost'],
-                'salvage_value' => $validated['salvage_value'],
-                'tax_depreciation_method' => $validated['tax_depreciation_method'],
-                'tax_depreciation_rate' => $validated['tax_depreciation_rate'],
-                'tax_useful_life' => $validated['tax_useful_life'],
-                'updated_by' => auth()->id()
+            Log::info('AssetController@update called', ['request' => $request->all(), 'asset_id' => $asset->id]);
+
+            $validated = $request->validate([
+                'name' => 'required|string|max:255',
+                'code' => 'required|string|max:50|unique:assets,code,' . $asset->id,
+                'category_id' => 'required|exists:asset_categories,id',
+                'chart_of_account_id' => 'required|exists:chart_of_accounts,id',
+                'location' => 'nullable|string|max:255',
+                'description' => 'nullable|string',
+                'purchase_date' => 'required|date',
+                'purchase_price' => 'required|numeric|min:0',
+                'acquisition_cost' => 'required|numeric|min:0',
+                'salvage_value' => 'required|numeric|min:0',
+                'warehouse_id' => 'nullable|exists:warehouses,id',
+                'details' => 'nullable|array',
+                'details.serial_number' => 'nullable|string|max:100',
+                'details.supplier' => 'nullable|string|max:255',
+                'details.warranty_period' => 'nullable|integer|min:0',
+                'details.warranty_expiry' => 'nullable|date',
+                'details.depreciation_method' => 'nullable|string|in:straight_line,declining_balance,sum_of_years',
+                'details.depreciation_rate' => 'nullable|numeric|min:0|max:100',
+                'details.useful_life' => 'nullable|integer|min:1',
+                'details.residual_value' => 'nullable|numeric|min:0',
+                'details.condition' => 'nullable|string|in:new,good,fair,poor',
+                'details.notes' => 'nullable|string'
             ]);
 
-            // Update or create asset details
-            $asset->details()->updateOrCreate(
-                ['asset_id' => $asset->id],
-                [
-                    'serial_number' => $validated['details']['serial_number'],
+            Log::info('AssetController@update validated data', ['validated' => $validated, 'asset_id' => $asset->id]);
+
+            DB::beginTransaction();
+
+            try {
+                Log::info('AssetController@update - updating asset', ['asset_id' => $asset->id]);
+
+                // Prepare the update data
+                $updateData = [
+                    'name' => $validated['name'],
+                    'code' => $validated['code'],
+                    'category_id' => $validated['category_id'],
+                    'chart_of_account_id' => $validated['chart_of_account_id'],
+                    'location' => $validated['location'],
+                    'description' => $validated['description'],
                     'purchase_date' => $validated['purchase_date'],
                     'purchase_price' => $validated['purchase_price'],
-                    'supplier' => $validated['details']['supplier'],
-                    'warranty_period' => $validated['details']['warranty_period'],
-                    'warranty_expiry' => $validated['details']['warranty_expiry'],
-                    'depreciation_method' => $validated['details']['depreciation_method'],
-                    'depreciation_rate' => $validated['details']['depreciation_rate'],
-                    'useful_life' => $validated['details']['useful_life'],
-                    'residual_value' => $validated['details']['residual_value'],
-                    'revaluation_frequency' => $validated['details']['revaluation_frequency'],
-                    'depreciation_start_date' => $validated['details']['depreciation_start_date'],
-                    'location' => $validated['details']['location'],
-                    'condition' => $validated['details']['condition'],
-                    'notes' => $validated['details']['notes'],
-                    'updated_by' => auth()->id()
-                ]
-            );
+                    'acquisition_cost' => $validated['acquisition_cost'],
+                    'salvage_value' => $validated['salvage_value'],
+                ];
 
-            DB::commit();
-            return redirect()->route('assets.show', $asset)
-                ->with('success', 'Asset updated successfully.');
+                // Only add warehouse_id if it exists in the validated data
+                if (isset($validated['warehouse_id'])) {
+                    $updateData['warehouse_id'] = $validated['warehouse_id'];
+                }
+
+                // Update the asset
+                $asset->update($updateData);
+
+                // Update or create asset details
+                if (isset($validated['details'])) {
+                    $asset->details()->updateOrCreate(
+                        ['asset_id' => $asset->id],
+                        $validated['details']
+                    );
+                }
+
+                DB::commit();
+
+                return redirect()->route('assets.show', $asset)
+                    ->with('success', 'Asset updated successfully.');
+            } catch (\Exception $e) {
+                DB::rollBack();
+                Log::error('Error updating asset', [
+                    'error' => $e->getMessage(),
+                    'trace' => $e->getTraceAsString(),
+                    'request' => $request->all(),
+                    'asset_id' => $asset->id
+                ]);
+                throw $e;
+            }
         } catch (\Exception $e) {
-            DB::rollBack();
-            return back()->with('error', 'Error updating asset: ' . $e->getMessage());
+            Log::error('Error in AssetController@update', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+                'request' => $request->all(),
+                'asset_id' => $asset->id
+            ]);
+            return redirect()->back()
+                ->withInput()
+                ->withErrors(['error' => 'Failed to update asset. Please try again.']);
         }
     }
 

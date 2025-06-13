@@ -370,4 +370,22 @@ class Asset extends Model
         }
         return $this->disposal_value - $this->getNetBookValue();
     }
+
+    public function getCurrentBookValue()
+    {
+        return $this->current_value ?? $this->purchase_price;
+    }
+
+    public function getNextDepreciationDate()
+    {
+        if (!$this->purchase_date || !$this->depreciation_rate) {
+            return now();
+        }
+
+        $lastDepreciationDate = $this->purchase_date->copy()->addMonths(
+            floor(now()->diffInMonths($this->purchase_date))
+        );
+
+        return $lastDepreciationDate->addMonth();
+    }
 } 
