@@ -42,6 +42,8 @@ use App\Http\Controllers\Settings\LocalizationController;
 use App\Http\Controllers\Sales\SalesReturnController;
 use App\Http\Controllers\Asset\CategoryController as AssetCategoryController;
 use App\Http\Controllers\AssetDocumentController;
+use App\Http\Controllers\Settings\TaxGroupController;
+use App\Http\Controllers\Settings\TaxRateController;
 
 // Redirect root to login
 Route::get('/', function () {
@@ -186,10 +188,31 @@ Route::middleware('auth')->group(function () {
 
     // Settings Module Routes
     Route::prefix('settings')->name('settings.')->group(function () {
+        Route::get('/', [SettingController::class, 'index'])->name('index');
         Route::resource('users', UserController::class);
         Route::resource('company', CompanyController::class);
         Route::resource('security', SecurityController::class);
         Route::resource('localization', LocalizationController::class);
+        
+        // Tax Management Routes
+        Route::prefix('tax')->name('tax.')->group(function () {
+            Route::get('groups', [TaxGroupController::class, 'index'])->name('groups.index');
+            Route::get('groups/create', [TaxGroupController::class, 'create'])->name('groups.create');
+            Route::post('groups', [TaxGroupController::class, 'store'])->name('groups.store');
+            Route::get('groups/{taxGroup}', [TaxGroupController::class, 'show'])->name('groups.show');
+            Route::get('groups/{taxGroup}/edit', [TaxGroupController::class, 'edit'])->name('groups.edit');
+            Route::put('groups/{taxGroup}', [TaxGroupController::class, 'update'])->name('groups.update');
+            Route::delete('groups/{taxGroup}', [TaxGroupController::class, 'destroy'])->name('groups.destroy');
+            Route::patch('/groups/{taxGroup}/status', [TaxGroupController::class, 'updateStatus'])->name('groups.status');
+
+            Route::get('rates', [TaxRateController::class, 'index'])->name('rates.index');
+            Route::get('rates/create', [TaxRateController::class, 'create'])->name('rates.create');
+            Route::post('rates', [TaxRateController::class, 'store'])->name('rates.store');
+            Route::get('rates/{taxRate}', [TaxRateController::class, 'show'])->name('rates.show');
+            Route::get('rates/{taxRate}/edit', [TaxRateController::class, 'edit'])->name('rates.edit');
+            Route::put('rates/{taxRate}', [TaxRateController::class, 'update'])->name('rates.update');
+            Route::delete('rates/{taxRate}', [TaxRateController::class, 'destroy'])->name('rates.destroy');
+        });
     });
 
     // Assets Routes
@@ -216,5 +239,8 @@ Route::middleware('auth')->group(function () {
         Route::post('/{asset}/documents', [AssetDocumentController::class, 'store'])->name('documents.store');
         Route::get('/documents/{document}/download', [AssetDocumentController::class, 'download'])->name('documents.download');
         Route::delete('/documents/{document}', [AssetDocumentController::class, 'destroy'])->name('documents.destroy');
+
+        // New route for generating asset codes
+        Route::get('/generate-code/{category}', [AssetController::class, 'generateCode'])->name('generate-code');
     });
 });

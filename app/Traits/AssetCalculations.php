@@ -17,7 +17,6 @@ trait AssetCalculations
         $purchasePrice = $assetDetail->purchase_price;
         $accumulatedDepreciation = $this->getAccumulatedDepreciation();
 
-        // Calculate current book value
         return max(0, $purchasePrice - $accumulatedDepreciation);
     }
 
@@ -89,6 +88,10 @@ trait AssetCalculations
 
     private function calculateStraightLineDepreciation($cost, $life, $date)
     {
+        if ($life <= 0) {
+            return 0;
+        }
+
         $annualDepreciation = $cost / $life;
         $daysInYear = $date->isLeapYear() ? 366 : 365;
         $daysInFiscalYear = $this->getDaysInFiscalYear($date);
@@ -98,6 +101,10 @@ trait AssetCalculations
 
     private function calculateDecliningBalanceDepreciation($currentValue, $rate, $date)
     {
+        if ($rate <= 0) {
+            return 0;
+        }
+
         $annualDepreciation = $currentValue * ($rate / 100);
         $daysInYear = $date->isLeapYear() ? 366 : 365;
         $daysInFiscalYear = $this->getDaysInFiscalYear($date);
@@ -107,7 +114,15 @@ trait AssetCalculations
 
     private function calculateSumOfYearsDepreciation($cost, $life, $date)
     {
+        if ($life <= 0) {
+            return 0;
+        }
+
         $remainingLife = $life - $this->getAge();
+        if ($remainingLife <= 0) {
+            return 0;
+        }
+
         $sum = ($life * ($life + 1)) / 2;
         $annualDepreciation = ($cost * $remainingLife) / $sum;
         $daysInYear = $date->isLeapYear() ? 366 : 365;
@@ -118,6 +133,10 @@ trait AssetCalculations
 
     private function calculateDoubleDecliningDepreciation($cost, $life, $currentValue, $date)
     {
+        if ($life <= 0) {
+            return 0;
+        }
+
         $rate = (2 / $life) * 100;
         return $this->calculateDecliningBalanceDepreciation($currentValue, $rate, $date);
     }
@@ -125,7 +144,7 @@ trait AssetCalculations
     private function calculateUnitsOfProductionDepreciation($cost, $life, $date)
     {
         $assetDetail = $this->assetDetails->first();
-        if (!$assetDetail || !$assetDetail->total_units) {
+        if (!$assetDetail || !$assetDetail->total_units || $assetDetail->total_units <= 0) {
             return 0;
         }
 
@@ -192,12 +211,16 @@ trait AssetCalculations
     public function getDepreciationPercentage()
     {
         $assetDetail = $this->assetDetails->first();
-        if (!$assetDetail) {
+        if (!$assetDetail || $assetDetail->purchase_price <= 0) {
             return 0;
         }
 
         $age = $this->getAge();
         $life = $assetDetail->useful_life;
+
+        if ($life <= 0) {
+            return 0;
+        }
 
         return min(100, ($age / $life) * 100);
     }

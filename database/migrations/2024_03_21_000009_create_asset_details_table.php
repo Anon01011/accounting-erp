@@ -9,31 +9,30 @@ return new class extends Migration
     public function up()
     {
         if (!Schema::hasTable('asset_details')) {
-        Schema::create('asset_details', function (Blueprint $table) {
-            $table->id();
+            Schema::create('asset_details', function (Blueprint $table) {
+                $table->id();
                 $table->foreignId('asset_id')->constrained('assets')->onDelete('cascade');
-            $table->string('serial_number')->nullable();
+                $table->string('serial_number')->nullable();
+                $table->string('model')->nullable();
+                $table->string('manufacturer')->nullable();
+                $table->string('supplier')->nullable();
                 $table->date('purchase_date')->nullable();
                 $table->decimal('purchase_price', 15, 2)->default(0);
-                $table->string('supplier')->nullable();
                 $table->string('warranty_period')->nullable();
-            $table->date('warranty_expiry')->nullable();
-                $table->string('depreciation_method')->default('straight_line');
-                $table->decimal('depreciation_rate', 5, 2)->default(0);
-                $table->integer('useful_life')->default(0);
-                $table->string('location')->nullable();
-                $table->string('condition')->default('good')->nullable();
-            $table->text('notes')->nullable();
+                $table->date('warranty_expiry')->nullable();
+                $table->string('condition')->nullable();
+                $table->text('notes')->nullable();
                 $table->foreignId('created_by')->nullable()->constrained('users')->onDelete('restrict');
                 $table->foreignId('updated_by')->nullable()->constrained('users')->onDelete('restrict');
-            $table->timestamps();
-            $table->softDeletes();
-            // Indexes
-            $table->index('serial_number');
-            $table->index('purchase_date');
-            $table->index('warranty_expiry');
-            $table->index('condition');
-        });
+                $table->timestamps();
+                $table->softDeletes();
+
+                // Indexes
+                $table->index('serial_number');
+                $table->index('purchase_date');
+                $table->index('warranty_expiry');
+                $table->index('condition');
+            });
         } else {
             Schema::table('asset_details', function (Blueprint $table) {
                 if (!Schema::hasColumn('asset_details', 'asset_id')) {
@@ -42,14 +41,20 @@ return new class extends Migration
                 if (!Schema::hasColumn('asset_details', 'serial_number')) {
                     $table->string('serial_number')->nullable();
                 }
+                if (!Schema::hasColumn('asset_details', 'model')) {
+                    $table->string('model')->nullable();
+                }
+                if (!Schema::hasColumn('asset_details', 'manufacturer')) {
+                    $table->string('manufacturer')->nullable();
+                }
+                if (!Schema::hasColumn('asset_details', 'supplier')) {
+                    $table->string('supplier')->nullable();
+                }
                 if (!Schema::hasColumn('asset_details', 'purchase_date')) {
                     $table->date('purchase_date')->nullable();
                 }
                 if (!Schema::hasColumn('asset_details', 'purchase_price')) {
                     $table->decimal('purchase_price', 15, 2)->default(0);
-                }
-                if (!Schema::hasColumn('asset_details', 'supplier')) {
-                    $table->string('supplier')->nullable();
                 }
                 if (!Schema::hasColumn('asset_details', 'warranty_period')) {
                     $table->string('warranty_period')->nullable();
@@ -57,20 +62,8 @@ return new class extends Migration
                 if (!Schema::hasColumn('asset_details', 'warranty_expiry')) {
                     $table->date('warranty_expiry')->nullable();
                 }
-                if (!Schema::hasColumn('asset_details', 'depreciation_method')) {
-                    $table->string('depreciation_method')->default('straight_line');
-                }
-                if (!Schema::hasColumn('asset_details', 'depreciation_rate')) {
-                    $table->decimal('depreciation_rate', 5, 2)->default(0);
-                }
-                if (!Schema::hasColumn('asset_details', 'useful_life')) {
-                    $table->integer('useful_life')->default(0);
-                }
-                if (!Schema::hasColumn('asset_details', 'location')) {
-                    $table->string('location')->nullable();
-                }
                 if (!Schema::hasColumn('asset_details', 'condition')) {
-                    $table->string('condition')->default('good')->nullable();
+                    $table->string('condition')->nullable();
                 }
                 if (!Schema::hasColumn('asset_details', 'notes')) {
                     $table->text('notes')->nullable();
@@ -84,17 +77,18 @@ return new class extends Migration
                 if (!Schema::hasColumn('asset_details', 'deleted_at')) {
                     $table->softDeletes();
                 }
-                // Indexes
-                if (Schema::hasColumn('asset_details', 'serial_number')) {
+
+                // Add indexes if they don't exist
+                if (!Schema::hasIndex('asset_details', 'asset_details_serial_number_index')) {
                     $table->index('serial_number');
                 }
-                if (Schema::hasColumn('asset_details', 'purchase_date')) {
+                if (!Schema::hasIndex('asset_details', 'asset_details_purchase_date_index')) {
                     $table->index('purchase_date');
                 }
-                if (Schema::hasColumn('asset_details', 'warranty_expiry')) {
+                if (!Schema::hasIndex('asset_details', 'asset_details_warranty_expiry_index')) {
                     $table->index('warranty_expiry');
                 }
-                if (Schema::hasColumn('asset_details', 'condition')) {
+                if (!Schema::hasIndex('asset_details', 'asset_details_condition_index')) {
                     $table->index('condition');
                 }
             });

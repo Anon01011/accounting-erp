@@ -13,18 +13,42 @@ class AssetTransaction extends Model
     protected $fillable = [
         'asset_id',
         'type',
+        'transaction_type',
         'amount',
         'date',
         'description',
         'reference_type',
         'reference_id',
+        'journal_entry_id',
+        'tax_related',
+        'tax_amount',
         'created_by',
         'updated_by'
     ];
 
     protected $casts = [
+        'date' => 'date',
         'amount' => 'decimal:2',
-        'date' => 'date'
+        'tax_amount' => 'decimal:2',
+        'tax_related' => 'boolean'
+    ];
+
+    // Constants
+    const TYPES = [
+        'acquisition' => 'Acquisition',
+        'disposal' => 'Disposal',
+        'depreciation' => 'Depreciation',
+        'revaluation' => 'Revaluation',
+        'impairment' => 'Impairment',
+        'maintenance' => 'Maintenance',
+        'repair' => 'Repair',
+        'upgrade' => 'Upgrade',
+        'transfer' => 'Transfer'
+    ];
+
+    const TRANSACTION_TYPES = [
+        'debit' => 'Debit',
+        'credit' => 'Credit'
     ];
 
     // Transaction Types
@@ -168,5 +192,25 @@ class AssetTransaction extends Model
                 'credit' => $this->amount > $assetValue ? ($this->amount - $assetValue) : 0
             ]);
         }
+    }
+
+    public function getTotalAmount()
+    {
+        return $this->amount + ($this->tax_related ? $this->tax_amount : 0);
+    }
+
+    public function isTaxable()
+    {
+        return $this->tax_related && $this->tax_amount > 0;
+    }
+
+    public function getTransactionTypeLabel()
+    {
+        return self::TRANSACTION_TYPES[$this->transaction_type] ?? $this->transaction_type;
+    }
+
+    public function getTypeLabel()
+    {
+        return self::TYPES[$this->type] ?? $this->type;
     }
 } 

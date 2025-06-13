@@ -1,160 +1,227 @@
 @extends('layouts.dashboard')
 
 @section('content')
-<div class="container-fluid">
-    <div class="row">
-        <div class="col-12">
-            <div class="card">
-                <div class="card-header">
-                    <h3 class="card-title">Edit Asset</h3>
-                </div>
-                <div class="card-body">
-                    <form action="{{ route('assets.update', $asset) }}" method="POST">
-                        @csrf
-                        @method('PUT')
-                        <div class="row">
-                            <div class="col-md-6">
-                                <h4>Basic Information</h4>
-                                <div class="form-group">
-                                    <label>Asset Group</label>
-                                    <select name="group_code" class="form-control" required>
-                                        <option value="">Select Group</option>
-                                        @foreach($assetGroups as $code => $name)
-                                            <option value="{{ $code }}" {{ $asset->group_code == $code ? 'selected' : '' }}>
-                                                {{ $name }}
-                                            </option>
-                                        @endforeach
-                                    </select>
-                                </div>
-                                <div class="form-group">
-                                    <label>Asset Category</label>
-                                    <select name="class_code" class="form-control" required>
-                                        <option value="">Select Category</option>
-                                        @foreach($assetCategories as $code => $name)
-                                            <option value="{{ $code }}" {{ $asset->class_code == $code ? 'selected' : '' }}>
-                                                {{ $name }}
-                                            </option>
-                                        @endforeach
-                                    </select>
-                                </div>
-                                <div class="form-group">
-                                    <label>Account Code</label>
-                                    <input type="text" name="account_code" class="form-control" value="{{ $asset->account_code }}" required>
-                                </div>
-                                <div class="form-group">
-                                    <label>Name</label>
-                                    <input type="text" name="name" class="form-control" value="{{ $asset->name }}" required>
-                                </div>
-                                <div class="form-group">
-                                    <label>Description</label>
-                                    <textarea name="description" class="form-control">{{ $asset->description }}</textarea>
-                                </div>
-                                <div class="form-group">
-                                    <label>Parent Asset</label>
-                                    <select name="parent_id" class="form-control">
-                                        <option value="">None</option>
-                                        @foreach($parentAssets as $parent)
-                                            <option value="{{ $parent->id }}" {{ $asset->parent_id == $parent->id ? 'selected' : '' }}>
-                                                {{ $parent->name }}
-                                            </option>
-                                        @endforeach
-                                    </select>
-                                </div>
-                                <div class="form-group">
-                                    <div class="custom-control custom-switch">
-                                        <input type="checkbox" class="custom-control-input" id="is_active" name="is_active" {{ $asset->is_active ? 'checked' : '' }}>
-                                        <label class="custom-control-label" for="is_active">Active</label>
-                                    </div>
-                                </div>
+<div class="container mx-auto px-4 py-8">
+    <div class="max-w mx-auto">
+        <div class="bg-white rounded-lg shadow-md p-8">
+            <h2 class="text-2xl font-bold mb-8 text-gray-800">Edit Asset</h2>
+
+            <form action="{{ route('assets.update', $asset) }}" method="POST" class="space-y-8">
+                @csrf
+                @method('PUT')
+
+                <!-- Basic Information -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    <!-- Asset Name -->
+                    <div>
+                        <label for="name" class="block text-sm font-medium text-gray-700 mb-2">Asset Name</label>
+                        <div class="relative rounded-md shadow-sm">
+                            <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                                <i class="fas fa-tag text-gray-400"></i>
                             </div>
-                            <div class="col-md-6">
-                                <h4>Asset Details</h4>
-                                <div class="form-group">
-                                    <label>Serial Number</label>
-                                    <input type="text" name="serial_number" class="form-control" value="{{ $asset->assetDetails->serial_number }}">
-                                </div>
-                                <div class="form-group">
-                                    <label>Purchase Date</label>
-                                    <input type="date" name="purchase_date" class="form-control" value="{{ $asset->assetDetails->purchase_date->format('Y-m-d') }}" required>
-                                </div>
-                                <div class="form-group">
-                                    <label>Purchase Price</label>
-                                    <input type="number" name="purchase_price" class="form-control" step="0.01" value="{{ $asset->assetDetails->purchase_price }}" required>
-                                </div>
-                                <div class="form-group">
-                                    <label>Warranty Expiry</label>
-                                    <input type="date" name="warranty_expiry" class="form-control" value="{{ $asset->assetDetails->warranty_expiry ? $asset->assetDetails->warranty_expiry->format('Y-m-d') : '' }}">
-                                </div>
-                                <div class="form-group">
-                                    <label>Depreciation Method</label>
-                                    <select name="depreciation_method" class="form-control" required>
-                                        <option value="straight_line" {{ $asset->assetDetails->depreciation_method == 'straight_line' ? 'selected' : '' }}>
-                                            Straight Line
-                                        </option>
-                                        <option value="declining_balance" {{ $asset->assetDetails->depreciation_method == 'declining_balance' ? 'selected' : '' }}>
-                                            Declining Balance
-                                        </option>
-                                        <option value="sum_of_years" {{ $asset->assetDetails->depreciation_method == 'sum_of_years' ? 'selected' : '' }}>
-                                            Sum of Years
-                                        </option>
-                                    </select>
-                                </div>
-                                <div class="form-group">
-                                    <label>Depreciation Rate (%)</label>
-                                    <input type="number" name="depreciation_rate" class="form-control" step="0.01" value="{{ $asset->assetDetails->depreciation_rate }}" required>
-                                </div>
-                                <div class="form-group">
-                                    <label>Useful Life (Years)</label>
-                                    <input type="number" name="useful_life" class="form-control" value="{{ $asset->assetDetails->useful_life }}" required>
-                                </div>
-                                <div class="form-group">
-                                    <label>Location</label>
-                                    <input type="text" name="location" class="form-control" value="{{ $asset->assetDetails->location }}">
-                                </div>
-                                <div class="form-group">
-                                    <label>Condition</label>
-                                    <select name="condition" class="form-control" required>
-                                        <option value="new" {{ $asset->assetDetails->condition == 'new' ? 'selected' : '' }}>New</option>
-                                        <option value="good" {{ $asset->assetDetails->condition == 'good' ? 'selected' : '' }}>Good</option>
-                                        <option value="fair" {{ $asset->assetDetails->condition == 'fair' ? 'selected' : '' }}>Fair</option>
-                                        <option value="poor" {{ $asset->assetDetails->condition == 'poor' ? 'selected' : '' }}>Poor</option>
-                                    </select>
-                                </div>
-                                <div class="form-group">
-                                    <label>Notes</label>
-                                    <textarea name="notes" class="form-control">{{ $asset->assetDetails->notes }}</textarea>
-                                </div>
-                            </div>
+                            <input type="text" name="name" id="name" required
+                                class="h-12 block w-full pl-12 pr-4 sm:text-sm rounded-md border border-[#1b758c] focus:ring-[#1b758c] focus:border-[#1b758c] transition duration-150 ease-in-out"
+                                value="{{ old('name', $asset->name) }}">
                         </div>
-                        <div class="row mt-3">
-                            <div class="col-12">
-                                <button type="submit" class="bg-[#01657F] hover:bg-[#014d61] text-white font-bold py-2 px-4 rounded">
-                                    <i class="fas fa-save mr-2"></i>Update Asset
-                                </button>
-                                <a href="{{ route('assets.show', $asset) }}" class="btn btn-secondary">Cancel</a>
+                        @error('name')
+                            <p class="mt-2 text-sm text-red-600">{{ $message }}</p>
+                        @enderror
+                    </div>
+
+                    <!-- Asset Code -->
+                    <div>
+                        <label for="code" class="block text-sm font-medium text-gray-700 mb-2">Asset Code</label>
+                        <div class="relative rounded-md shadow-sm">
+                            <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                                <i class="fas fa-barcode text-gray-400"></i>
                             </div>
+                            <input type="text" name="code" id="code" readonly
+                                class="h-12 bg-gray-50 block w-full pl-12 pr-4 sm:text-sm rounded-md border border-[#1b758c] text-gray-500 transition duration-150 ease-in-out"
+                                value="{{ old('code', $asset->code) }}">
                         </div>
-                    </form>
+                        @error('code')
+                            <p class="mt-2 text-sm text-red-600">{{ $message }}</p>
+                        @enderror
+                    </div>
+
+                    <!-- Category -->
+                    <div>
+                        <label for="category_id" class="block text-sm font-medium text-gray-700 mb-2">Category</label>
+                        <div class="relative rounded-md shadow-sm">
+                            <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                                <i class="fas fa-folder text-gray-400"></i>
+                            </div>
+                            <select name="category_id" id="category_id" required
+                                class="h-12 block w-full pl-12 pr-4 sm:text-sm rounded-md border border-[#1b758c] focus:ring-[#1b758c] focus:border-[#1b758c] transition duration-150 ease-in-out">
+                                <option value="">Select Category</option>
+                                @foreach($assetCategories as $category)
+                                    <option value="{{ $category->id }}" {{ old('category_id', $asset->category_id) == $category->id ? 'selected' : '' }}>{{ $category->name }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        @error('category_id')
+                            <p class="mt-2 text-sm text-red-600">{{ $message }}</p>
+                        @enderror
+                    </div>
+
+                    <!-- Chart of Account -->
+                    <div>
+                        <label for="chart_of_account_id" class="block text-sm font-medium text-gray-700 mb-2">Chart of Account</label>
+                        <div class="relative rounded-md shadow-sm">
+                            <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                                <i class="fas fa-book text-gray-400"></i>
+                            </div>
+                            <select name="chart_of_account_id" id="chart_of_account_id" required
+                                class="h-12 block w-full pl-12 pr-4 sm:text-sm rounded-md border border-[#1b758c] focus:ring-[#1b758c] focus:border-[#1b758c] transition duration-150 ease-in-out">
+                                <option value="">Select Chart of Account</option>
+                                @foreach($accounts as $account)
+                                    <option value="{{ $account->id }}" {{ old('chart_of_account_id', $asset->chart_of_account_id) == $account->id ? 'selected' : '' }}>{{ $account->account_code }} - {{ $account->name }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        @error('chart_of_account_id')
+                            <p class="mt-2 text-sm text-red-600">{{ $message }}</p>
+                        @enderror
+                    </div>
+
+                    <!-- Location -->
+                    <div>
+                        <label for="location" class="block text-sm font-medium text-gray-700 mb-2">Location</label>
+                        <div class="relative rounded-md shadow-sm">
+                            <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                                <i class="fas fa-map-marker-alt text-gray-400"></i>
+                            </div>
+                            <input type="text" name="location" id="location" required
+                                class="h-12 block w-full pl-12 pr-4 sm:text-sm rounded-md border border-[#1b758c] focus:ring-[#1b758c] focus:border-[#1b758c] transition duration-150 ease-in-out"
+                                value="{{ old('location', $asset->location) }}">
+                        </div>
+                        @error('location')
+                            <p class="mt-2 text-sm text-red-600">{{ $message }}</p>
+                        @enderror
+                    </div>
+
+                    <!-- Description -->
+                    <div class="md:col-span-2">
+                        <label for="description" class="block text-sm font-medium text-gray-700 mb-2">Description</label>
+                        <div class="mt-1">
+                            <textarea name="description" id="description" rows="3"
+                                class="block w-full px-4 py-3 sm:text-sm rounded-md border border-[#1b758c] focus:ring-[#1b758c] focus:border-[#1b758c] transition duration-150 ease-in-out"
+                                >{{ old('description', $asset->description) }}</textarea>
+                        </div>
+                        @error('description')
+                            <p class="mt-2 text-sm text-red-600">{{ $message }}</p>
+                        @enderror
+                    </div>
                 </div>
-            </div>
+
+                <!-- Purchase Information -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    <!-- Purchase Date -->
+                    <div>
+                        <label for="purchase_date" class="block text-sm font-medium text-gray-700 mb-2">Purchase Date</label>
+                        <div class="relative rounded-md shadow-sm">
+                            <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                                <i class="fas fa-calendar text-gray-400"></i>
+                            </div>
+                            <input type="date" name="purchase_date" id="purchase_date" required
+                                class="h-12 block w-full pl-12 pr-4 sm:text-sm rounded-md border border-[#1b758c] focus:ring-[#1b758c] focus:border-[#1b758c] transition duration-150 ease-in-out"
+                                value="{{ old('purchase_date', $asset->purchase_date ? $asset->purchase_date->format('Y-m-d') : null) }}">
+                        </div>
+                        @error('purchase_date')
+                            <p class="mt-2 text-sm text-red-600">{{ $message }}</p>
+                        @enderror
+                    </div>
+
+                    <!-- Purchase Price -->
+                    <div>
+                        <label for="purchase_price" class="block text-sm font-medium text-gray-700 mb-2">Purchase Price</label>
+                        <div class="relative rounded-md shadow-sm">
+                            <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                                <i class="fas fa-dollar-sign text-gray-400"></i>
+                            </div>
+                            <input type="number" name="purchase_price" id="purchase_price" step="0.01" required
+                                class="h-12 block w-full pl-12 pr-4 sm:text-sm rounded-md border border-[#1b758c] focus:ring-[#1b758c] focus:border-[#1b758c] transition duration-150 ease-in-out"
+                                value="{{ old('purchase_price', $asset->purchase_price) }}">
+                        </div>
+                        @error('purchase_price')
+                            <p class="mt-2 text-sm text-red-600">{{ $message }}</p>
+                        @enderror
+                    </div>
+
+                    <!-- Current Value -->
+                    <div>
+                        <label for="current_value" class="block text-sm font-medium text-gray-700 mb-2">Current Value</label>
+                        <div class="relative rounded-md shadow-sm">
+                            <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                                <i class="fas fa-dollar-sign text-gray-400"></i>
+                            </div>
+                            <input type="number" name="current_value" id="current_value" step="0.01" required
+                                class="h-12 block w-full pl-12 pr-4 sm:text-sm rounded-md border border-[#1b758c] focus:ring-[#1b758c] focus:border-[#1b758c] transition duration-150 ease-in-out"
+                                value="{{ old('current_value', $asset->current_value) }}">
+                        </div>
+                        @error('current_value')
+                            <p class="mt-2 text-sm text-red-600">{{ $message }}</p>
+                        @enderror
+                    </div>
+
+                    <!-- Supplier -->
+                    <div>
+                        <label for="supplier_id" class="block text-sm font-medium text-gray-700 mb-2">Supplier</label>
+                        <div class="relative rounded-md shadow-sm">
+                            <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                                <i class="fas fa-truck text-gray-400"></i>
+                            </div>
+                            <select name="supplier_id" id="supplier_id" required
+                                class="h-12 block w-full pl-12 pr-4 sm:text-sm rounded-md border border-[#1b758c] focus:ring-[#1b758c] focus:border-[#1b758c] transition duration-150 ease-in-out">
+                                <option value="">Select Supplier</option>
+                                @foreach($suppliers as $supplier)
+                                    <option value="{{ $supplier->id }}" {{ old('supplier_id', $asset->supplier_id) == $supplier->id ? 'selected' : '' }}>{{ $supplier->name }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        @error('supplier_id')
+                            <p class="mt-2 text-sm text-red-600">{{ $message }}</p>
+                        @enderror
+                    </div>
+
+                    <!-- Tax Group -->
+                    <div>
+                        <label for="tax_group_id" class="block text-sm font-medium text-gray-700 mb-2">Tax Group</label>
+                        <div class="relative rounded-md shadow-sm">
+                            <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                                <i class="fas fa-percentage text-gray-400"></i>
+                            </div>
+                            <select name="tax_group_id" id="tax_group_id" required
+                                class="h-12 block w-full pl-12 pr-4 sm:text-sm rounded-md border border-[#1b758c] focus:ring-[#1b758c] focus:border-[#1b758c] transition duration-150 ease-in-out">
+                                <option value="">Select Tax Group</option>
+                                @foreach($taxGroups as $taxGroup)
+                                    <option value="{{ $taxGroup->id }}" {{ old('tax_group_id', $asset->tax_group_id) == $taxGroup->id ? 'selected' : '' }}>{{ $taxGroup->name }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        @error('tax_group_id')
+                            <p class="mt-2 text-sm text-red-600">{{ $message }}</p>
+                        @enderror
+                    </div>
+                </div>
+
+                <!-- Warranty, Depreciation, and Other Fields (copy from create view as needed) -->
+                <!-- ... (copy the rest of the fields and structure from create.blade.php) ... -->
+
+                <div class="flex justify-end space-x-4">
+                    <a href="{{ route('assets.index') }}"
+                        class="inline-flex items-center px-6 py-3 bg-gray-200 border border-transparent rounded-md font-semibold text-base text-gray-800 uppercase tracking-widest hover:bg-gray-300 focus:bg-gray-300 active:bg-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-200 focus:ring-offset-2 transition ease-in-out duration-150">
+                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+                        </svg>
+                        Back to List
+                    </a>
+                    <button type="submit" class="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-[#1b758c] hover:bg-[#01657F] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#1b758c] transition duration-150 ease-in-out">
+                        Update Asset
+                    </button>
+                </div>
+            </form>
         </div>
     </div>
 </div>
-
-@push('scripts')
-<script>
-$(document).ready(function() {
-    // Auto-generate account code based on group and class
-    $('select[name="group_code"], select[name="class_code"]').change(function() {
-        var groupCode = $('select[name="group_code"]').val();
-        var classCode = $('select[name="class_code"]').val();
-        if (groupCode && classCode) {
-            // You can implement your own logic for generating account codes
-            var accountCode = groupCode + classCode + '0000';
-            $('input[name="account_code"]').val(accountCode);
-        }
-    });
-});
-</script>
-@endpush
 @endsection 

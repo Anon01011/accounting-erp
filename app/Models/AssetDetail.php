@@ -7,22 +7,22 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use App\Traits\AssetCalculations;
+use Carbon\Carbon;
 
 class AssetDetail extends Model
 {
     use HasFactory, SoftDeletes, AssetCalculations;
 
     protected $fillable = [
-        'account_id',
+        'asset_id',
         'serial_number',
+        'model',
+        'manufacturer',
+        'supplier',
         'purchase_date',
         'purchase_price',
+        'warranty_period',
         'warranty_expiry',
-        'depreciation_method',
-        'depreciation_rate',
-        'useful_life',
-        'total_units',
-        'location',
         'condition',
         'notes',
         'created_by',
@@ -32,9 +32,23 @@ class AssetDetail extends Model
     protected $casts = [
         'purchase_date' => 'date',
         'warranty_expiry' => 'date',
-        'purchase_price' => 'decimal:2',
-        'depreciation_rate' => 'decimal:2',
-        'total_units' => 'integer'
+        'purchase_price' => 'decimal:2'
+    ];
+
+    // Constants
+    const DEPRECIATION_METHODS = [
+        'straight_line' => 'Straight Line',
+        'declining_balance' => 'Declining Balance',
+        'sum_of_years' => 'Sum of Years',
+        'double_declining' => 'Double Declining',
+        'units_of_production' => 'Units of Production'
+    ];
+
+    const CONDITIONS = [
+        'new' => 'New',
+        'good' => 'Good',
+        'fair' => 'Fair',
+        'poor' => 'Poor'
     ];
 
     // Depreciation Methods
@@ -57,66 +71,107 @@ class AssetDetail extends Model
         return $this->belongsTo(Asset::class);
     }
 
-    public function creator(): BelongsTo
+    public function createdBy(): BelongsTo
     {
         return $this->belongsTo(User::class, 'created_by');
     }
 
-    public function updater(): BelongsTo
+    public function updatedBy(): BelongsTo
     {
         return $this->belongsTo(User::class, 'updated_by');
     }
 
     public function getDepreciationMethods(): array
     {
-        return [
-            self::METHOD_STRAIGHT_LINE => 'Straight Line',
-            self::METHOD_DECLINING_BALANCE => 'Declining Balance',
-            self::METHOD_SUM_OF_YEARS => 'Sum of Years',
-            self::METHOD_DOUBLE_DECLINING => 'Double Declining',
-            self::METHOD_UNITS_OF_PRODUCTION => 'Units of Production'
-        ];
+        return self::DEPRECIATION_METHODS;
     }
 
     public function getConditions(): array
     {
-        return [
-            self::CONDITION_NEW => 'New',
-            self::CONDITION_GOOD => 'Good',
-            self::CONDITION_FAIR => 'Fair',
-            self::CONDITION_POOR => 'Poor',
-            self::CONDITION_CRITICAL => 'Critical'
-        ];
+        return self::CONDITIONS;
     }
 
-    public function isWarrantyValid(): bool
+    public function isWarrantyExpired(): bool
     {
-        return $this->warranty_expiry && $this->warranty_expiry->isFuture();
+        return $this->warranty_expiry && $this->warranty_expiry < now();
     }
 
-    public function getWarrantyDaysRemaining(): int
+    public function getWarrantyStatus(): string
     {
         if (!$this->warranty_expiry) {
-            return 0;
+            return 'No warranty';
         }
-        return max(0, now()->diffInDays($this->warranty_expiry, false));
+
+        if ($this->isWarrantyExpired()) {
+            return 'Expired';
+        }
+
+        return 'Active';
     }
 
     public function getDepreciationStatus(): string
     {
-        $percentage = $this->getDepreciationPercentage();
-        
-        if ($percentage >= 100) {
-            return 'Fully Depreciated';
-        } elseif ($percentage >= 75) {
-            return 'Mostly Depreciated';
-        } elseif ($percentage >= 50) {
-            return 'Half Depreciated';
-        } elseif ($percentage >= 25) {
-            return 'Partially Depreciated';
-        } else {
-            return 'Newly Acquired';
+        if (!$this->depreciation_start_date) {
+            return 'Not Started';
         }
+
+        if ($this->depreciation_end_date && now()->isAfter($this->depreciation_end_date)) {
+            return 'Completed';
+        }
+
+        return 'In Progress';
+    }
+
+    public function getNextRevaluationDate()
+    {
+        if (!$this->last_revaluation_date || !$this->revaluation_frequency) {
+            return null;
+        }
+
+        $frequency = $this->revaluation_frequency;
+        $lastDate = $this->last_revaluation_date;
+
+        switch ($frequency) {
+            case 'monthly':
+                return $lastDate->addMonth();
+            case 'quarterly':
+                return $lastDate->addMonths(3);
+            case 'semi_annual':
+                return $lastDate->addMonths(6);
+            case 'annual':
+                return $lastDate->addYear();
+            case 'biennial':
+                return $lastDate->addYears(2);
+            case 'triennial':
+                return $lastDate->addYears(3);
+            default:
+                return null;
+        }
+    }
+
+    public function isRevaluationDue()
+    {
+        if (!$this->next_revaluation_date) {
+            return false;
+        }
+
+        return now()->isAfter($this->next_revaluation_date);
+    }
+
+    public function getRemainingLife(): int
+    {
+        if (!$this->depreciation_start_date || !$this->useful_life) {
+            return 0;
+        }
+
+        $startDate = $this->depreciation_start_date;
+        $endDate = $this->depreciation_end_date ?? $startDate->copy()->addYears($this->useful_life);
+        
+        if (now()->isAfter($endDate)) {
+            return 0;
+        }
+
+        return now()->diffInYears($endDate);
     }
 
     // Accessors
@@ -127,11 +182,84 @@ class AssetDetail extends Model
 
     public function getDepreciationAmountAttribute(): float
     {
-        return $this->account->getDepreciationAmount();
+        return $this->asset->getDepreciationAmount();
     }
 
     public function getNetBookValueAttribute(): float
     {
-        return $this->account->getNetBookValue();
+        return $this->asset->getNetBookValue();
+    }
+
+    public function getCurrentValueAttribute(): float
+    {
+        return $this->asset->getCurrentValue();
+    }
+
+    public function getAccumulatedDepreciationAttribute(): float
+    {
+        return $this->asset->getAccumulatedDepreciation();
+    }
+
+    public function getDepreciationPercentageAttribute(): float
+    {
+        if ($this->purchase_price <= 0) {
+            return 0;
+        }
+        return min(100, ($this->accumulated_depreciation / $this->purchase_price) * 100);
+    }
+
+    public function getRemainingLifeAttribute(): int
+    {
+        return $this->getRemainingLife();
+    }
+
+    public function getNextMaintenanceDateAttribute(): ?Carbon
+    {
+        $lastMaintenance = $this->asset->maintenanceRecords()
+            ->latest()
+            ->first();
+
+        if (!$lastMaintenance) {
+            return now()->addMonths(3); // Default to 3 months if no maintenance history
+        }
+
+        return $lastMaintenance->next_maintenance_date;
+    }
+
+    public function getMaintenanceStatusAttribute(): string
+    {
+        if (!$this->next_maintenance_date) {
+            return 'No Maintenance Scheduled';
+        }
+
+        if ($this->next_maintenance_date->isPast()) {
+            return 'Overdue';
+        }
+
+        $daysUntilMaintenance = now()->diffInDays($this->next_maintenance_date);
+        
+        if ($daysUntilMaintenance <= 7) {
+            return 'Due Soon';
+        } elseif ($daysUntilMaintenance <= 30) {
+            return 'Upcoming';
+        } else {
+            return 'Scheduled';
+        }
+    }
+
+    // Scopes
+    public function scopeByCondition($query, $condition)
+    {
+        return $query->where('condition', $condition);
+    }
+
+    public function scopeWarrantyExpired($query)
+    {
+        return $query->where('warranty_expiry', '<', now());
+    }
+
+    public function scopeWarrantyActive($query)
+    {
+        return $query->where('warranty_expiry', '>=', now());
     }
 } 
