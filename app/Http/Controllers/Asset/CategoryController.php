@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Asset;
 use App\Http\Controllers\Controller;
 use App\Models\AssetCategory;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 
 class CategoryController extends Controller
 {
@@ -33,7 +34,14 @@ class CategoryController extends Controller
             'code' => 'required|string|max:10|unique:asset_categories,code',
             'name' => 'required|string|max:255',
             'description' => 'nullable|string',
+            'depreciation_method' => 'required|string|in:straight_line,declining_balance,sum_of_years,units_of_production',
+            'default_depreciation_rate' => 'required|numeric|min:0|max:100',
+            'default_useful_life' => 'required|integer|min:1',
+            'status' => 'boolean'
         ]);
+
+        $validated['created_by'] = auth()->id();
+        $validated['updated_by'] = auth()->id();
 
         AssetCategory::create($validated);
 
@@ -52,7 +60,13 @@ class CategoryController extends Controller
             'code' => 'required|string|max:10|unique:asset_categories,code,' . $category->id,
             'name' => 'required|string|max:255',
             'description' => 'nullable|string',
+            'depreciation_method' => 'required|string|in:straight_line,declining_balance,sum_of_years,units_of_production',
+            'default_depreciation_rate' => 'required|numeric|min:0|max:100',
+            'default_useful_life' => 'required|integer|min:1',
+            'status' => 'boolean'
         ]);
+
+        $validated['updated_by'] = auth()->id();
 
         $category->update($validated);
 

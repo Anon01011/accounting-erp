@@ -22,7 +22,7 @@ class SecurityHeaders
         $response->headers->set('X-XSS-Protection', '1; mode=block');
         $response->headers->set('X-Content-Type-Options', 'nosniff');
         $response->headers->set('Referrer-Policy', 'strict-origin-when-cross-origin');
-        $response->headers->set('Content-Security-Policy', "default-src 'self' https: 'unsafe-inline' 'unsafe-eval' data: https://fonts.bunny.net https://cdnjs.cloudflare.com; img-src 'self' data: https:; font-src 'self' https://fonts.bunny.net https://cdnjs.cloudflare.com;");
+        $response->headers->set('Content-Security-Policy', "default-src 'self'");
         $response->headers->set('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
 
         return $response;

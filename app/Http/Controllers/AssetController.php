@@ -26,16 +26,14 @@ class AssetController extends Controller
         $this->middleware('auth');
     }
 
-    public function index()
+    public function index(Request $request)
     {
         $assets = Asset::with(['category', 'details', 'transactions', 'documents'])
             ->orderBy('code')
-            ->get();
-
-        $assetCategories = config('accounting.asset_categories');
-        $assetGroups = config('accounting.asset_groups');
-
-        return view('assets.index', compact('assets', 'assetCategories', 'assetGroups'));
+            ->paginate(20); // Show 20 per page
+        $categories = AssetCategory::all();
+        $groups = config('accounting.asset_groups', []);
+        return view('assets.index', compact('assets', 'categories', 'groups'));
     }
 
     public function create()
@@ -101,25 +99,25 @@ class AssetController extends Controller
     {
         Log::info('AssetController@store called', ['request' => $request->all()]);
         try {
-            $validated = $request->validate([
-                'name' => 'required|string|max:255',
-                'category_id' => 'required|exists:asset_categories,id',
+        $validated = $request->validate([
+            'name' => 'required|string|max:255',
+            'category_id' => 'required|exists:asset_categories,id',
                 'chart_of_account_id' => 'required|exists:chart_of_accounts,id',
-                'description' => 'nullable|string',
-                'purchase_date' => 'required|date',
-                'purchase_price' => 'required|numeric|min:0',
-                'current_value' => 'required|numeric|min:0',
-                'location' => 'required|string|max:255',
+            'description' => 'nullable|string',
+            'purchase_date' => 'required|date',
+            'purchase_price' => 'required|numeric|min:0',
+            'current_value' => 'required|numeric|min:0',
+            'location' => 'required|string|max:255',
                 'status' => 'required|in:active,inactive',
-                'supplier_id' => 'required|exists:suppliers,id',
-                'tax_group_id' => 'required|exists:tax_groups,id',
+            'supplier_id' => 'required|exists:suppliers,id',
+            'tax_group_id' => 'required|exists:tax_groups,id',
                 'warranty_period' => 'nullable|integer|min:0',
-                'warranty_expiry' => 'nullable|date',
+            'warranty_expiry' => 'nullable|date',
                 'depreciation_method' => 'required|in:straight_line,declining_balance,sum_of_years_digits,units_of_production',
-                'depreciation_rate' => 'required|numeric|min:0|max:100',
-                'useful_life' => 'required|integer|min:1',
+            'depreciation_rate' => 'required|numeric|min:0|max:100',
+            'useful_life' => 'required|integer|min:1',
                 'notes' => 'nullable|string'
-            ]);
+        ]);
             Log::info('Validation passed', ['validated' => $validated]);
 
             DB::beginTransaction();
@@ -164,7 +162,7 @@ class AssetController extends Controller
                 'purchase_price' => (float)$validated['purchase_price'],
                 'current_value' => (float)$validated['current_value'],
                 'location' => $validated['location'],
-                'status' => $validated['status'] === 'active' ? 1 : 0,
+                'status' => 1, // Set to 1 for active
                 'supplier_id' => $validated['supplier_id'],
                 'tax_group_id' => $validated['tax_group_id'],
                 'warranty_expiry' => $warrantyExpiry,
@@ -267,50 +265,50 @@ class AssetController extends Controller
         try {
             Log::info('AssetController@update called', ['request' => $request->all(), 'asset_id' => $asset->id]);
 
-            $validated = $request->validate([
-                'name' => 'required|string|max:255',
-                'code' => 'required|string|max:50|unique:assets,code,' . $asset->id,
-                'category_id' => 'required|exists:asset_categories,id',
+        $validated = $request->validate([
+            'name' => 'required|string|max:255',
+            'code' => 'required|string|max:50|unique:assets,code,' . $asset->id,
+            'category_id' => 'required|exists:asset_categories,id',
                 'chart_of_account_id' => 'required|exists:chart_of_accounts,id',
                 'location' => 'nullable|string|max:255',
-                'description' => 'nullable|string',
+            'description' => 'nullable|string',
                 'purchase_date' => 'required|date',
-                'purchase_price' => 'required|numeric|min:0',
-                'acquisition_cost' => 'required|numeric|min:0',
-                'salvage_value' => 'required|numeric|min:0',
+            'purchase_price' => 'required|numeric|min:0',
+            'acquisition_cost' => 'required|numeric|min:0',
+            'salvage_value' => 'required|numeric|min:0',
                 'warehouse_id' => 'nullable|exists:warehouses,id',
                 'details' => 'nullable|array',
-                'details.serial_number' => 'nullable|string|max:100',
-                'details.supplier' => 'nullable|string|max:255',
+            'details.serial_number' => 'nullable|string|max:100',
+            'details.supplier' => 'nullable|string|max:255',
                 'details.warranty_period' => 'nullable|integer|min:0',
-                'details.warranty_expiry' => 'nullable|date',
+            'details.warranty_expiry' => 'nullable|date',
                 'details.depreciation_method' => 'nullable|string|in:straight_line,declining_balance,sum_of_years',
                 'details.depreciation_rate' => 'nullable|numeric|min:0|max:100',
                 'details.useful_life' => 'nullable|integer|min:1',
                 'details.residual_value' => 'nullable|numeric|min:0',
                 'details.condition' => 'nullable|string|in:new,good,fair,poor',
-                'details.notes' => 'nullable|string'
-            ]);
+            'details.notes' => 'nullable|string'
+        ]);
 
             Log::info('AssetController@update validated data', ['validated' => $validated, 'asset_id' => $asset->id]);
 
-            DB::beginTransaction();
+        DB::beginTransaction();
 
             try {
                 Log::info('AssetController@update - updating asset', ['asset_id' => $asset->id]);
 
                 // Prepare the update data
                 $updateData = [
-                    'name' => $validated['name'],
-                    'code' => $validated['code'],
-                    'category_id' => $validated['category_id'],
+                'name' => $validated['name'],
+                'code' => $validated['code'],
+                'category_id' => $validated['category_id'],
                     'chart_of_account_id' => $validated['chart_of_account_id'],
                     'location' => $validated['location'],
-                    'description' => $validated['description'],
-                    'purchase_date' => $validated['purchase_date'],
-                    'purchase_price' => $validated['purchase_price'],
-                    'acquisition_cost' => $validated['acquisition_cost'],
-                    'salvage_value' => $validated['salvage_value'],
+                'description' => $validated['description'],
+                'purchase_date' => $validated['purchase_date'],
+                'purchase_price' => $validated['purchase_price'],
+                'acquisition_cost' => $validated['acquisition_cost'],
+                'salvage_value' => $validated['salvage_value'],
                 ];
 
                 // Only add warehouse_id if it exists in the validated data
@@ -321,20 +319,20 @@ class AssetController extends Controller
                 // Update the asset
                 $asset->update($updateData);
 
-                // Update or create asset details
+            // Update or create asset details
                 if (isset($validated['details'])) {
-                    $asset->details()->updateOrCreate(
-                        ['asset_id' => $asset->id],
+            $asset->details()->updateOrCreate(
+                ['asset_id' => $asset->id],
                         $validated['details']
                     );
                 }
 
-                DB::commit();
+            DB::commit();
 
-                return redirect()->route('assets.show', $asset)
-                    ->with('success', 'Asset updated successfully.');
-            } catch (\Exception $e) {
-                DB::rollBack();
+            return redirect()->route('assets.show', $asset)
+                ->with('success', 'Asset updated successfully.');
+        } catch (\Exception $e) {
+            DB::rollBack();
                 Log::error('Error updating asset', [
                     'error' => $e->getMessage(),
                     'trace' => $e->getTraceAsString(),
@@ -387,21 +385,21 @@ class AssetController extends Controller
             if (!$asset->category) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Asset category not found'
+                    'message' => 'Asset category not found. Please assign a category to this asset.'
                 ], 400);
             }
 
             if (!$asset->category->depreciation_method) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Depreciation method not set for this asset category'
+                    'message' => 'Depreciation method not set for this asset category. Please configure the depreciation method.'
                 ], 400);
             }
 
             if ($asset->category->default_useful_life <= 0) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Useful life must be greater than 0'
+                    'message' => 'Useful life must be greater than 0. Please set a valid useful life in the asset category.'
                 ], 400);
             }
 
@@ -409,7 +407,23 @@ class AssetController extends Controller
             if ($asset->getCurrentValue() <= 0) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Asset is already fully depreciated'
+                    'message' => 'Asset is already fully depreciated. No further depreciation can be calculated.'
+                ], 400);
+            }
+
+            // Check if purchase date is set
+            if (!$asset->purchase_date) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Purchase date is required for depreciation calculation. Please set the purchase date.'
+                ], 400);
+            }
+
+            // Check if purchase price is valid
+            if ($asset->purchase_price <= 0) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Purchase price must be greater than 0. Please set a valid purchase price.'
                 ], 400);
             }
 
@@ -419,7 +433,7 @@ class AssetController extends Controller
             if ($depreciationAmount <= 0) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'No depreciation amount to record'
+                    'message' => 'No depreciation amount to record. This could be due to invalid calculation parameters.'
                 ], 400);
             }
 
@@ -433,32 +447,55 @@ class AssetController extends Controller
                 'updated_by' => auth()->id()
             ]);
 
-            // Update asset's accumulated depreciation and current value
+            // Update asset values
             $asset->update([
                 'accumulated_depreciation' => $asset->accumulated_depreciation + $depreciationAmount,
-                'current_value' => $asset->purchase_price - ($asset->accumulated_depreciation + $depreciationAmount)
+                'current_value' => max(0, $asset->purchase_price - ($asset->accumulated_depreciation + $depreciationAmount))
             ]);
 
             // Try to create journal entry if accounting is configured
             try {
                 if (config('accounting.default_accounts.depreciation_expense') && 
                     config('accounting.default_accounts.accumulated_depreciation')) {
-                    $transaction->createJournalEntry();
+                    $journalEntry = $transaction->createJournalEntry();
+                    
+                    // Log the journal entry creation
+                    Log::info('Journal entry created for depreciation', [
+                        'asset_id' => $asset->id,
+                        'journal_entry_id' => $journalEntry->id,
+                        'amount' => $depreciationAmount
+                    ]);
+                } else {
+                    Log::warning('Accounting accounts not configured for depreciation', [
+                        'asset_id' => $asset->id,
+                        'depreciation_expense_account' => config('accounting.default_accounts.depreciation_expense'),
+                        'accumulated_depreciation_account' => config('accounting.default_accounts.accumulated_depreciation')
+                    ]);
                 }
             } catch (\Exception $e) {
                 // Log the error but don't fail the transaction
-                Log::warning('Failed to create journal entry for depreciation: ' . $e->getMessage());
+                Log::warning('Failed to create journal entry for depreciation: ' . $e->getMessage(), [
+                    'asset_id' => $asset->id,
+                    'error' => $e->getMessage(),
+                    'trace' => $e->getTraceAsString()
+                ]);
             }
 
             DB::commit();
             return response()->json([
                 'success' => true,
                 'message' => 'Depreciation calculated successfully',
-                'amount' => $depreciationAmount
+                'amount' => $depreciationAmount,
+                'current_value' => $asset->current_value,
+                'accumulated_depreciation' => $asset->accumulated_depreciation
             ]);
         } catch (\Exception $e) {
             DB::rollBack();
-            Log::error('Error calculating depreciation: ' . $e->getMessage());
+            Log::error('Error calculating depreciation: ' . $e->getMessage(), [
+                'asset_id' => $asset->id,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
             return response()->json([
                 'success' => false,
                 'message' => 'Error calculating depreciation: ' . $e->getMessage()
@@ -479,6 +516,7 @@ class AssetController extends Controller
 
         DB::beginTransaction();
         try {
+            // Create maintenance record
             $maintenance = $asset->maintenanceRecords()->create([
                 'maintenance_type' => $validated['maintenance_type'],
                 'description' => $validated['description'],
@@ -487,17 +525,41 @@ class AssetController extends Controller
                 'cost' => $validated['cost'],
                 'performed_by' => $validated['performed_by'],
                 'created_by' => auth()->id(),
+                'updated_by' => auth()->id(),
+                'status' => true
+            ]);
+
+            Log::info('AssetMaintenance record created:', ['id' => optional($maintenance)->id, 'data' => $maintenance->toArray()]);
+
+            // Generate a unique reference number for the transaction
+            $reference = 'MAINT-' . date('YmdHis') . '-' . $maintenance->id;
+
+            // Determine transaction type based on maintenance type
+            $transactionType = 'debit'; // Default for maintenance expenses
+
+            // Create maintenance transaction
+            $transaction = $asset->transactions()->create([
+                'type' => 'maintenance',
+                'transaction_type' => $transactionType,
+                'amount' => $validated['cost'],
+                'date' => $validated['maintenance_date'],
+                'description' => $validated['description'],
+                'reference' => $reference,
+                'created_by' => auth()->id(),
                 'updated_by' => auth()->id()
             ]);
 
-            $transaction = $maintenance->createMaintenanceTransaction();
-            $transaction->createJournalEntry();
+            Log::info('AssetTransaction created:', ['id' => optional($transaction)->id, 'data' => $transaction->toArray()]);
 
             DB::commit();
             return redirect()->route('assets.show', $asset)
-                ->with('success', 'Maintenance record created successfully.');
+                ->with('success', 'Maintenance record and transaction created successfully.');
         } catch (\Exception $e) {
             DB::rollBack();
+            Log::error('Error recording maintenance:', [
+                'message' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
             return redirect()->back()
                 ->with('error', 'Error recording maintenance: ' . $e->getMessage())
                 ->withInput();
@@ -509,36 +571,84 @@ class AssetController extends Controller
         $validated = $request->validate([
             'disposal_date' => 'required|date',
             'disposal_value' => 'required|numeric|min:0',
-            'disposal_method' => 'required|string',
-            'description' => 'nullable|string'
+            'disposal_reason' => 'required|string'
         ]);
+
+        // Check if asset is already disposed
+        if (!$asset->is_active) {
+            return back()->with('error', 'This asset is already disposed.');
+        }
 
         DB::beginTransaction();
         try {
-            $asset->update([
+            // Create disposal log
+            $disposalLog = $asset->disposal_logs()->create([
+                'user_id' => auth()->id(),
                 'disposal_date' => $validated['disposal_date'],
                 'disposal_value' => $validated['disposal_value'],
-                'disposal_method' => $validated['disposal_method'],
-                'status' => false,
+                'disposal_reason' => $validated['disposal_reason'],
+                'status' => 'completed'
+            ]);
+
+            // Update asset status and details
+            $asset->update([
+                'is_active' => false,
+                'status' => 'disposed',
+                'disposal_date' => $validated['disposal_date'],
+                'disposal_value' => $validated['disposal_value'],
+                'disposal_reason' => $validated['disposal_reason'],
                 'updated_by' => auth()->id()
             ]);
 
+            // Update asset details if exists
+            if ($asset->details) {
+                $asset->details()->update([
+                    'condition' => 'Disposed',
+                    'updated_by' => auth()->id()
+                ]);
+            }
+
             // Create disposal transaction
-            $asset->transactions()->create([
+            $transaction = $asset->transactions()->create([
                 'type' => 'disposal',
                 'transaction_type' => 'credit',
                 'amount' => $validated['disposal_value'],
                 'date' => $validated['disposal_date'],
-                'description' => $validated['description'] ?? 'Asset disposal',
+                'description' => $validated['disposal_reason'],
+                'reference' => 'DISPOSAL-' . $disposalLog->id,
                 'created_by' => auth()->id(),
                 'updated_by' => auth()->id()
             ]);
 
+            // Create journal entry for disposal
+            $journalEntry = $transaction->createJournalEntry();
+
+            // Log the disposal
+            Log::info('Asset disposed successfully', [
+                'asset_id' => $asset->id,
+                'asset_name' => $asset->name,
+                'user_id' => auth()->id(),
+                'disposal_date' => $validated['disposal_date'],
+                'disposal_value' => $validated['disposal_value'],
+                'disposal_log_id' => $disposalLog->id,
+                'transaction_id' => $transaction->id,
+                'journal_entry_id' => $journalEntry->id
+            ]);
+
             DB::commit();
             return redirect()->route('assets.show', $asset)
-                ->with('success', 'Asset disposed successfully.');
+                ->with('success', 'Asset has been successfully disposed and marked as inactive.');
         } catch (\Exception $e) {
             DB::rollBack();
+            
+            Log::error('Asset disposal failed', [
+                'asset_id' => $asset->id,
+                'asset_name' => $asset->name,
+                'user_id' => auth()->id(),
+                'error' => $e->getMessage(),
+                'disposal_data' => $validated
+            ]);
+
             return back()->with('error', 'Error disposing asset: ' . $e->getMessage());
         }
     }
@@ -557,6 +667,71 @@ class AssetController extends Controller
         $report = $assets->groupBy('category_id');
 
         return view('assets.report', compact('report', 'assetCategories', 'assetGroups'));
+    }
+
+    public function recordTransaction(Request $request, Asset $asset)
+    {
+        try {
+            $validated = $request->validate([
+                'date' => 'required|date',
+                'type' => 'required|in:purchase,sale,depreciation,revaluation,impairment,disposal,other',
+                'purchase_type' => 'nullable|string|max:255',
+                'amount' => 'required|numeric',
+                'description' => 'required|string',
+                'reference' => 'nullable|string'
+            ]);
+
+            // Determine transaction type based on the type
+            $transactionType = match($validated['type']) {
+                'purchase' => 'debit',
+                'sale' => 'credit',
+                'depreciation' => 'credit',
+                'revaluation' => 'debit',
+                'impairment' => 'credit',
+                'disposal' => 'credit',
+                default => 'debit'
+            };
+
+            DB::beginTransaction();
+
+            // Create the transaction
+            $transaction = $asset->transactions()->create([
+                'date' => $validated['date'],
+                'type' => $validated['type'],
+                'purchase_type' => $validated['purchase_type'] ?? null,
+                'transaction_type' => $transactionType,
+                'amount' => $validated['amount'],
+                'description' => $validated['description'],
+                'reference' => $validated['reference'],
+                'created_by' => auth()->id(),
+                'updated_by' => auth()->id()
+            ]);
+
+            // Update asset's current value based on transaction type
+            switch ($validated['type']) {
+                case 'depreciation':
+                case 'impairment':
+                    $asset->current_value -= $validated['amount'];
+                    break;
+                case 'revaluation':
+                    $asset->current_value += $validated['amount'];
+                    break;
+            }
+
+            $asset->save();
+
+            DB::commit();
+
+            return redirect()->back()->with('success', 'Transaction recorded successfully');
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('Error recording asset transaction:', [
+                'message' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            
+            return redirect()->back()->with('error', 'Error recording transaction: ' . $e->getMessage());
+        }
     }
 
     public function generateCode(AssetCategory $category)
@@ -581,25 +756,25 @@ class AssetController extends Controller
     private function generateAssetCode($category)
     {
         try {
-            // Get the first three letters of the category name
-            $prefix = strtoupper(substr($category->name, 0, 3));
+        // Get the first three letters of the category name
+        $prefix = strtoupper(substr($category->name, 0, 3));
             Log::info('Category prefix: ' . $prefix);
-            
-            // Find the last asset code with this prefix
-            $lastAsset = Asset::where('code', 'like', $prefix . '-%')
-                ->orderBy('code', 'desc')
-                ->first();
-            
-            if ($lastAsset) {
+        
+        // Find the last asset code with this prefix
+        $lastAsset = Asset::where('code', 'like', $prefix . '-%')
+            ->orderBy('code', 'desc')
+            ->first();
+        
+        if ($lastAsset) {
                 Log::info('Last asset found: ' . $lastAsset->code);
-                // Extract the number and increment
+            // Extract the number and increment
                 $lastNumber = (int) substr($lastAsset->code, strlen($prefix) + 1);
-                $newNumber = $lastNumber + 1;
-            } else {
+            $newNumber = $lastNumber + 1;
+        } else {
                 Log::info('No previous assets found with prefix: ' . $prefix);
-                $newNumber = 1;
-            }
-            
+            $newNumber = 1;
+        }
+        
             // Format the new code
             $newCode = $prefix . '-' . str_pad($newNumber, 3, '0', STR_PAD_LEFT);
             Log::info('Generated new code: ' . $newCode);

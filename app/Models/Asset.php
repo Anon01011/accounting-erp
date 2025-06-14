@@ -10,10 +10,13 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Database\Eloquent\Relations\HasManyThrough;
+use Carbon\Carbon;
+use Illuminate\Support\Facades\Log;
+use App\Traits\AssetCalculations;
 
 class Asset extends Model
 {
-    use HasFactory, SoftDeletes;
+    use HasFactory, SoftDeletes, AssetCalculations;
 
     protected $fillable = [
         'name',
@@ -44,6 +47,28 @@ class Asset extends Model
         'depreciation_rate' => 'decimal:2',
         'is_active' => 'boolean'
     ];
+
+    protected static function boot()
+    {
+        parent::boot();
+
+        static::creating(function ($asset) {
+            Log::info('Asset creating:', $asset->toArray());
+        });
+
+        static::created(function ($asset) {
+            Log::info('Asset created:', $asset->toArray());
+        });
+
+        static::updating(function ($asset) {
+            Log::info('Asset updating (original):', $asset->getOriginal());
+            Log::info('Asset updating (changes):', $asset->getDirty());
+        });
+
+        static::updated(function ($asset) {
+            Log::info('Asset updated:', $asset->toArray());
+        });
+    }
 
     // Relationships
     public function category()
@@ -126,6 +151,11 @@ class Asset extends Model
     public function taxGroup(): BelongsTo
     {
         return $this->belongsTo(TaxGroup::class, 'tax_group_id');
+    }
+
+    public function disposal_logs()
+    {
+        return $this->hasMany(AssetDisposalLog::class);
     }
 
     // Accessors
@@ -219,60 +249,61 @@ class Asset extends Model
 
     public function getDepreciationAmount(): float
     {
-        if (!$this->category) {
+        $assetDetail = $this->details->first();
+        if (!$assetDetail) {
             return 0;
         }
 
-        $method = $this->category->depreciation_method ?? 'straight_line';
-        $rate = floatval($this->category->default_depreciation_rate ?? 0);
-        $life = intval($this->category->default_useful_life ?? 0);
-        $cost = floatval($this->purchase_price ?? 0);
-        $currentValue = floatval($this->getCurrentValue() ?? 0);
+        // Get the last depreciation date
+        $lastDepreciation = $this->transactions()
+            ->where('type', 'depreciation')
+            ->latest()
+            ->first();
 
-        // Return 0 if any required value is invalid
-        if ($cost <= 0 || $currentValue <= 0) {
+        // If no previous depreciation, use purchase date
+        $startDate = $lastDepreciation ? $lastDepreciation->date : $assetDetail->purchase_date;
+        
+        // Calculate months since last depreciation or purchase
+        $monthsSinceLastDepreciation = now()->diffInMonths($startDate);
+        
+        // If less than a month has passed, return 0
+        if ($monthsSinceLastDepreciation < 1) {
             return 0;
         }
 
-        switch ($method) {
+        // Get depreciation parameters from asset detail
+        $depreciationMethod = $assetDetail->depreciation_method ?? 'straight_line';
+        $depreciationRate = $assetDetail->depreciation_rate ?? 0;
+        $usefulLife = $assetDetail->useful_life ?? 0;
+        $salvageValue = $assetDetail->residual_value ?? 0;
+
+        // Calculate depreciation based on method
+        switch ($depreciationMethod) {
             case 'straight_line':
-                if ($life <= 0) {
-                    return 0;
-                }
-                return $cost / $life;
+                $annualDepreciation = ($assetDetail->purchase_price - $salvageValue) / $usefulLife;
+                $monthlyDepreciation = $annualDepreciation / 12;
+                return $monthlyDepreciation * $monthsSinceLastDepreciation;
 
             case 'declining_balance':
-                if ($rate <= 0) {
-                    return 0;
-                }
-                return $currentValue * ($rate / 100);
+                $bookValue = $this->getCurrentValue();
+                $annualDepreciation = $bookValue * ($depreciationRate / 100);
+                $monthlyDepreciation = $annualDepreciation / 12;
+                return $monthlyDepreciation * $monthsSinceLastDepreciation;
 
             case 'sum_of_years':
-                if ($life <= 0) {
-                    return 0;
-                }
-                $sum = ($life * ($life + 1)) / 2;
-                $remainingLife = $life - $this->getAge();
-                if ($remainingLife <= 0 || $sum <= 0) {
-                    return 0;
-                }
-                return ($cost * $remainingLife) / $sum;
-
-            case 'double_declining':
-                if ($life <= 0) {
-                    return 0;
-                }
-                $rate = (2 / $life) * 100;
-                return $currentValue * ($rate / 100);
+                $remainingLife = $usefulLife - $this->getAge();
+                if ($remainingLife <= 0) return 0;
+                
+                $sumOfYears = ($usefulLife * ($usefulLife + 1)) / 2;
+                $depreciationFactor = $remainingLife / $sumOfYears;
+                $annualDepreciation = ($assetDetail->purchase_price - $salvageValue) * $depreciationFactor;
+                $monthlyDepreciation = $annualDepreciation / 12;
+                return $monthlyDepreciation * $monthsSinceLastDepreciation;
 
             case 'units_of_production':
-                $totalUnits = floatval($this->category->total_units ?? 0);
-                if ($totalUnits <= 0) {
-                    return 0;
-                }
-                $depreciationPerUnit = $cost / $totalUnits;
-                $unitsThisYear = $this->getUnitsThisYear();
-                return $depreciationPerUnit * $unitsThisYear;
+                // This method requires additional tracking of units produced
+                // For now, return 0 as it needs to be implemented based on actual usage
+                return 0;
 
             default:
                 return 0;
@@ -297,9 +328,10 @@ class Asset extends Model
 
     public function isUnderWarranty(): bool
     {
-        return $this->details && 
-               $this->details->warranty_expiry && 
-               $this->details->warranty_expiry->isFuture();
+        $detail = $this->details->first();
+        return $detail && 
+               $detail->warranty_expiry && 
+               Carbon::parse($detail->warranty_expiry)->isFuture();
     }
 
     public function needsMaintenance(): bool

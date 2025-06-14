@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Support\Facades\Log;
 
 class AssetTransaction extends Model
 {
@@ -13,10 +14,12 @@ class AssetTransaction extends Model
     protected $fillable = [
         'asset_id',
         'type',
+        'purchase_type',
         'transaction_type',
         'amount',
         'date',
         'description',
+        'reference',
         'reference_type',
         'reference_id',
         'journal_entry_id',
@@ -32,6 +35,28 @@ class AssetTransaction extends Model
         'tax_amount' => 'decimal:2',
         'tax_related' => 'boolean'
     ];
+
+    protected static function boot()
+    {
+        parent::boot();
+
+        static::creating(function ($transaction) {
+            Log::info('AssetTransaction creating:', $transaction->toArray());
+        });
+
+        static::created(function ($transaction) {
+            Log::info('AssetTransaction created:', $transaction->toArray());
+        });
+
+        static::updating(function ($transaction) {
+            Log::info('AssetTransaction updating (original):', $transaction->getOriginal());
+            Log::info('AssetTransaction updating (changes):', $transaction->getDirty());
+        });
+
+        static::updated(function ($transaction) {
+            Log::info('AssetTransaction updated:', $transaction->toArray());
+        });
+    }
 
     // Constants
     const TYPES = [
@@ -117,6 +142,9 @@ class AssetTransaction extends Model
             case self::TYPE_DISPOSAL:
                 $this->createDisposalJournalItems($journalEntry);
                 break;
+            case self::TYPE_MAINTENANCE:
+                $this->createMaintenanceJournalItems($journalEntry);
+                break;
         }
 
         $this->update([
@@ -146,18 +174,43 @@ class AssetTransaction extends Model
 
     private function createDepreciationJournalItems(JournalEntry $journalEntry)
     {
+        // Get the depreciation expense account
+        $depreciationExpenseAccount = ChartOfAccount::where('account_code', config('accounting.default_accounts.depreciation_expense'))->first();
+        if (!$depreciationExpenseAccount) {
+            throw new \Exception('Depreciation expense account not found. Please configure it in the accounting settings.');
+        }
+
+        // Get the accumulated depreciation account
+        $accumulatedDepreciationAccount = $this->asset->chartOfAccount;
+        if (!$accumulatedDepreciationAccount) {
+            throw new \Exception('Asset account not found.');
+        }
+
         // Debit Depreciation Expense
         $journalEntry->items()->create([
-            'chart_of_account_id' => config('accounting.default_accounts.depreciation_expense'),
+            'chart_of_account_id' => $depreciationExpenseAccount->id,
             'debit' => $this->amount,
-            'credit' => 0
+            'credit' => 0,
+            'description' => 'Depreciation expense for ' . $this->asset->name,
+            'created_by' => $this->created_by,
+            'updated_by' => $this->updated_by
         ]);
 
         // Credit Accumulated Depreciation
         $journalEntry->items()->create([
-            'chart_of_account_id' => $this->asset->chartOfAccount->id,
+            'chart_of_account_id' => $accumulatedDepreciationAccount->id,
             'debit' => 0,
-            'credit' => $this->amount
+            'credit' => $this->amount,
+            'description' => 'Accumulated depreciation for ' . $this->asset->name,
+            'created_by' => $this->created_by,
+            'updated_by' => $this->updated_by
+        ]);
+
+        // Log the journal entry items creation
+        Log::info('Depreciation journal entry items created', [
+            'journal_entry_id' => $journalEntry->id,
+            'asset_id' => $this->asset_id,
+            'amount' => $this->amount
         ]);
     }
 
@@ -192,6 +245,23 @@ class AssetTransaction extends Model
                 'credit' => $this->amount > $assetValue ? ($this->amount - $assetValue) : 0
             ]);
         }
+    }
+
+    private function createMaintenanceJournalItems(JournalEntry $journalEntry)
+    {
+        // Debit Maintenance Expense
+        $journalEntry->items()->create([
+            'chart_of_account_id' => config('accounting.default_accounts.maintenance_expense'),
+            'debit' => $this->amount,
+            'credit' => 0
+        ]);
+
+        // Credit Cash/Bank Account
+        $journalEntry->items()->create([
+            'chart_of_account_id' => config('accounting.default_accounts.bank'), // or cash account
+            'debit' => 0,
+            'credit' => $this->amount
+        ]);
     }
 
     public function getTotalAmount()

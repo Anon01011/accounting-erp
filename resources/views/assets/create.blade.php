@@ -7,12 +7,12 @@
             <h2 class="text-2xl font-bold mb-8 text-gray-800">Create New Asset</h2>
 
             <form action="{{ route('assets.store') }}" method="POST" class="space-y-8">
-                @csrf
+            @csrf
 
                 <!-- Basic Information -->
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
                     <!-- Asset Name -->
-                    <div>
+                        <div>
                         <label for="name" class="block text-sm font-medium text-gray-700 mb-2">Asset Name</label>
                         <div class="relative rounded-md shadow-sm">
                             <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
@@ -25,10 +25,10 @@
                         @error('name')
                             <p class="mt-2 text-sm text-red-600">{{ $message }}</p>
                         @enderror
-                    </div>
+                        </div>
 
                     <!-- Asset Code -->
-                    <div>
+                        <div>
                         <label for="code" class="block text-sm font-medium text-gray-700 mb-2">Asset Code</label>
                         <div class="relative rounded-md shadow-sm">
                             <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
@@ -41,50 +41,50 @@
                         @error('code')
                             <p class="mt-2 text-sm text-red-600">{{ $message }}</p>
                         @enderror
-                    </div>
+                        </div>
 
                     <!-- Category -->
-                    <div>
+                        <div>
                         <label for="category_id" class="block text-sm font-medium text-gray-700 mb-2">Category</label>
                         <div class="relative rounded-md shadow-sm">
                             <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
                                 <i class="fas fa-folder text-gray-400"></i>
-                            </div>
+                                </div>
                             <select name="category_id" id="category_id" required
                                 class="h-12 block w-full pl-12 pr-4 sm:text-sm rounded-md border border-[#1b758c] focus:ring-[#1b758c] focus:border-[#1b758c] transition duration-150 ease-in-out">
-                                <option value="">Select Category</option>
-                                @foreach($assetCategories as $category)
+                                    <option value="">Select Category</option>
+                                    @foreach($assetCategories as $category)
                                     <option value="{{ $category->id }}">{{ $category->name }}</option>
-                                @endforeach
-                            </select>
-                        </div>
-                        @error('category_id')
+                                    @endforeach
+                                </select>
+                            </div>
+                            @error('category_id')
                             <p class="mt-2 text-sm text-red-600">{{ $message }}</p>
-                        @enderror
-                    </div>
+                            @enderror
+                        </div>
 
                     <!-- Chart of Account -->
-                    <div>
+                        <div>
                         <label for="chart_of_account_id" class="block text-sm font-medium text-gray-700 mb-2">Chart of Account</label>
                         <div class="relative rounded-md shadow-sm">
                             <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
                                 <i class="fas fa-book text-gray-400"></i>
-                            </div>
+                                </div>
                             <select name="chart_of_account_id" id="chart_of_account_id" required
                                 class="h-12 block w-full pl-12 pr-4 sm:text-sm rounded-md border border-[#1b758c] focus:ring-[#1b758c] focus:border-[#1b758c] transition duration-150 ease-in-out">
                                 <option value="">Select Chart of Account</option>
-                                @foreach($accounts as $account)
+                                    @foreach($accounts as $account)
                                     <option value="{{ $account->id }}">{{ $account->account_code }} - {{ $account->name }}</option>
-                                @endforeach
-                            </select>
-                        </div>
-                        @error('chart_of_account_id')
+                                    @endforeach
+                                </select>
+                            </div>
+                            @error('chart_of_account_id')
                             <p class="mt-2 text-sm text-red-600">{{ $message }}</p>
-                        @enderror
-                    </div>
+                            @enderror
+                        </div>
 
                     <!-- Location -->
-                    <div>
+                        <div>
                         <label for="location" class="block text-sm font-medium text-gray-700 mb-2">Location</label>
                         <div class="relative rounded-md shadow-sm">
                             <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
@@ -97,26 +97,26 @@
                         @error('location')
                             <p class="mt-2 text-sm text-red-600">{{ $message }}</p>
                         @enderror
-                    </div>
+                                </div>
 
                     <!-- Description -->
                     <div class="md:col-span-2">
                         <label for="description" class="block text-sm font-medium text-gray-700 mb-2">Description</label>
                         <div class="mt-1">
-                            <textarea name="description" id="description" rows="3"
+                                <textarea name="description" id="description" rows="3"
                                 class="block w-full px-4 py-3 sm:text-sm rounded-md border border-[#1b758c] focus:ring-[#1b758c] focus:border-[#1b758c] transition duration-150 ease-in-out"
                                 placeholder="Enter description"></textarea>
                         </div>
                         @error('description')
                             <p class="mt-2 text-sm text-red-600">{{ $message }}</p>
                         @enderror
-                    </div>
                 </div>
+            </div>
 
                 <!-- Purchase Information -->
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
                     <!-- Purchase Date -->
-                    <div>
+                        <div>
                         <label for="purchase_date" class="block text-sm font-medium text-gray-700 mb-2">Purchase Date</label>
                         <div class="relative rounded-md shadow-sm">
                             <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
@@ -128,10 +128,10 @@
                         @error('purchase_date')
                             <p class="mt-2 text-sm text-red-600">{{ $message }}</p>
                         @enderror
-                    </div>
+                        </div>
 
                     <!-- Purchase Price -->
-                    <div>
+                        <div>
                         <label for="purchase_price" class="block text-sm font-medium text-gray-700 mb-2">Purchase Price</label>
                         <div class="relative rounded-md shadow-sm">
                             <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
@@ -144,10 +144,10 @@
                         @error('purchase_price')
                             <p class="mt-2 text-sm text-red-600">{{ $message }}</p>
                         @enderror
-                    </div>
+                        </div>
 
                     <!-- Current Value -->
-                    <div>
+                        <div>
                         <label for="current_value" class="block text-sm font-medium text-gray-700 mb-2">Current Value</label>
                         <div class="relative rounded-md shadow-sm">
                             <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
@@ -160,30 +160,30 @@
                         @error('current_value')
                             <p class="mt-2 text-sm text-red-600">{{ $message }}</p>
                         @enderror
-                    </div>
+                        </div>
 
                     <!-- Supplier -->
-                    <div>
+                        <div>
                         <label for="supplier_id" class="block text-sm font-medium text-gray-700 mb-2">Supplier</label>
                         <div class="relative rounded-md shadow-sm">
                             <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
                                 <i class="fas fa-truck text-gray-400"></i>
-                            </div>
+                                </div>
                             <select name="supplier_id" id="supplier_id" required
                                 class="h-12 block w-full pl-12 pr-4 sm:text-sm rounded-md border border-[#1b758c] focus:ring-[#1b758c] focus:border-[#1b758c] transition duration-150 ease-in-out">
-                                <option value="">Select Supplier</option>
-                                @foreach($suppliers as $supplier)
+                                    <option value="">Select Supplier</option>
+                                    @foreach($suppliers as $supplier)
                                     <option value="{{ $supplier->id }}">{{ $supplier->name }}</option>
-                                @endforeach
-                            </select>
-                        </div>
-                        @error('supplier_id')
+                                    @endforeach
+                                </select>
+                            </div>
+                            @error('supplier_id')
                             <p class="mt-2 text-sm text-red-600">{{ $message }}</p>
-                        @enderror
-                    </div>
+                            @enderror
+                        </div>
 
                     <!-- Tax Group -->
-                    <div>
+                        <div>
                         <label for="tax_group_id" class="block text-sm font-medium text-gray-700 mb-2">Tax Group</label>
                         <div class="relative rounded-md shadow-sm">
                             <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
@@ -200,10 +200,10 @@
                         @error('tax_group_id')
                             <p class="mt-2 text-sm text-red-600">{{ $message }}</p>
                         @enderror
-                    </div>
+            </div>
 
                     <!-- Warranty Period -->
-                    <div>
+                        <div>
                         <label for="warranty_period" class="block text-sm font-medium text-gray-700 mb-2">Warranty Period (Months)</label>
                         <div class="relative rounded-md shadow-sm">
                             <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
@@ -215,11 +215,11 @@
                         </div>
                         @error('warranty_period')
                             <p class="mt-2 text-sm text-red-600">{{ $message }}</p>
-                        @enderror
-                    </div>
+                            @enderror
+                        </div>
 
                     <!-- Warranty Expiry -->
-                    <div>
+                        <div>
                         <label for="warranty_expiry" class="block text-sm font-medium text-gray-700 mb-2">Warranty Expiry (Optional if period is set)</label>
                         <div class="relative rounded-md shadow-sm">
                             <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
@@ -232,7 +232,7 @@
                             <p class="mt-2 text-sm text-red-600">{{ $message }}</p>
                         @enderror
                     </div>
-                </div>
+                        </div>
 
                 <!-- Depreciation Information -->
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
@@ -247,7 +247,7 @@
                                 class="h-12 block w-full pl-12 pr-4 sm:text-sm rounded-md border border-[#1b758c] focus:ring-[#1b758c] focus:border-[#1b758c] transition duration-150 ease-in-out">
                                 <option value="">Select Method</option>
                                 @foreach($depreciationMethods as $key => $value)
-                                    <option value="{{ $key }}">{{ $value }}</option>
+                                    <option value="{{ $key }}" {{ old('depreciation_method') == $key ? 'selected' : '' }}>{{ $value }}</option>
                                 @endforeach
                             </select>
                         </div>
@@ -265,7 +265,8 @@
                             </div>
                             <input type="number" name="depreciation_rate" id="depreciation_rate" step="0.01" min="0" max="100" required
                                 class="h-12 block w-full pl-12 pr-4 sm:text-sm rounded-md border border-[#1b758c] focus:ring-[#1b758c] focus:border-[#1b758c] transition duration-150 ease-in-out"
-                                placeholder="0.00">
+                                placeholder="0.00"
+                                value="{{ old('depreciation_rate') }}">
                         </div>
                         @error('depreciation_rate')
                             <p class="mt-2 text-sm text-red-600">{{ $message }}</p>
@@ -281,32 +282,66 @@
                             </div>
                             <input type="number" name="useful_life" id="useful_life" min="1" required
                                 class="h-12 block w-full pl-12 pr-4 sm:text-sm rounded-md border border-[#1b758c] focus:ring-[#1b758c] focus:border-[#1b758c] transition duration-150 ease-in-out"
-                                placeholder="Enter years">
+                                placeholder="Enter years"
+                                value="{{ old('useful_life') }}">
                         </div>
                         @error('useful_life')
                             <p class="mt-2 text-sm text-red-600">{{ $message }}</p>
                         @enderror
                     </div>
 
-                    <!-- Status -->
+                    <!-- Residual Value -->
                     <div>
-                        <label for="status" class="block text-sm font-medium text-gray-700 mb-2">Status</label>
+                        <label for="residual_value" class="block text-sm font-medium text-gray-700 mb-2">Residual Value</label>
                         <div class="relative rounded-md shadow-sm">
                             <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                                <i class="fas fa-toggle-on text-gray-400"></i>
+                                <i class="fas fa-dollar-sign text-gray-400"></i>
                             </div>
-                            <select name="status" id="status" required
-                                class="h-12 block w-full pl-12 pr-4 sm:text-sm rounded-md border border-[#1b758c] focus:ring-[#1b758c] focus:border-[#1b758c] transition duration-150 ease-in-out">
-                                <option value="active">Active</option>
-                                <option value="inactive">Inactive</option>
-                                <option value="maintenance">Maintenance</option>
-                                <option value="disposed">Disposed</option>
-                            </select>
+                            <input type="number" name="residual_value" id="residual_value" step="0.01" min="0" required
+                                class="h-12 block w-full pl-12 pr-4 sm:text-sm rounded-md border border-[#1b758c] focus:ring-[#1b758c] focus:border-[#1b758c] transition duration-150 ease-in-out"
+                                placeholder="0.00"
+                                value="{{ old('residual_value', 0) }}">
                         </div>
-                        @error('status')
+                        @error('residual_value')
                             <p class="mt-2 text-sm text-red-600">{{ $message }}</p>
                         @enderror
                     </div>
+
+                    <!-- Depreciation Start Date -->
+                    <div>
+                        <label for="depreciation_start_date" class="block text-sm font-medium text-gray-700 mb-2">Depreciation Start Date</label>
+                        <div class="relative rounded-md shadow-sm">
+                            <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                                <i class="fas fa-calendar text-gray-400"></i>
+                            </div>
+                            <input type="date" name="depreciation_start_date" id="depreciation_start_date" required
+                                class="h-12 block w-full pl-12 pr-4 sm:text-sm rounded-md border border-[#1b758c] focus:ring-[#1b758c] focus:border-[#1b758c] transition duration-150 ease-in-out"
+                                value="{{ old('depreciation_start_date') }}">
+                        </div>
+                        @error('depreciation_start_date')
+                            <p class="mt-2 text-sm text-red-600">{{ $message }}</p>
+                        @enderror
+                    </div>
+                </div>
+
+                <!-- Status -->
+                <div>
+                    <label for="status" class="block text-sm font-medium text-gray-700 mb-2">Status</label>
+                    <div class="relative rounded-md shadow-sm">
+                        <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                            <i class="fas fa-toggle-on text-gray-400"></i>
+                        </div>
+                        <select name="status" id="status" required
+                            class="h-12 block w-full pl-12 pr-4 sm:text-sm rounded-md border border-[#1b758c] focus:ring-[#1b758c] focus:border-[#1b758c] transition duration-150 ease-in-out">
+                            <option value="active">Active</option>
+                            <option value="inactive">Inactive</option>
+                            <option value="maintenance">Maintenance</option>
+                            <option value="disposed">Disposed</option>
+                        </select>
+                    </div>
+                    @error('status')
+                        <p class="mt-2 text-sm text-red-600">{{ $message }}</p>
+                    @enderror
                 </div>
 
                 <!-- Notes -->
@@ -323,20 +358,20 @@
                 </div>
 
                 <!-- Submit Button -->
-                <div class="flex justify-end space-x-3">
+            <div class="flex justify-end space-x-3">
                     <a href="{{ route('assets.index') }}" 
                         class="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#1b758c]">
-                        Cancel
-                    </a>
+                    Cancel
+                </a>
                     <button type="submit" 
                         class="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white !bg-[#1b758c] hover:!bg-[#155c70] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#1b758c]">
                         <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"/>
                         </svg>
                         Save Asset
-                    </button>
-                </div>
-            </form>
+                </button>
+            </div>
+        </form>
         </div>
     </div>
 </div>
@@ -377,7 +412,7 @@ $(document).ready(function() {
             console.error('Empty category name');
             return;
         }
-        
+
         // Get first three letters, remove any non-alphabetic characters
         const prefix = categoryName.replace(/[^a-zA-Z]/g, '').substring(0, 3).toUpperCase();
         console.log('Prefix:', prefix);

@@ -163,7 +163,7 @@ document.addEventListener('DOMContentLoaded', function() {
             return;
         }
 
-        fetch(`/api/account-groups/${typeCode}`)
+        fetch(`/api/account-groups?type_code=${typeCode}`)
             .then(response => response.json())
             .then(groups => {
                 groupSelect.innerHTML = '<option value="">Select Group</option>';
@@ -183,7 +183,7 @@ document.addEventListener('DOMContentLoaded', function() {
             return;
         }
 
-        fetch(`/api/account-classes/${typeCode}/${groupCode}`)
+        fetch(`/api/account-classes?type_code=${typeCode}&group_code=${groupCode}`)
             .then(response => response.json())
             .then(classes => {
                 classSelect.innerHTML = '<option value="">Select Class</option>';

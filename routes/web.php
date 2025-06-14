@@ -69,20 +69,25 @@ Route::middleware('auth')->group(function () {
 
     // Chart of Accounts Routes
     Route::prefix('chart-of-accounts')->name('chart-of-accounts.')->group(function () {
+        // API routes first
+        Route::get('/api/account-groups', [ChartOfAccountController::class, 'getAccountGroups'])->name('account-groups');
+        Route::get('/api/account-classes', [ChartOfAccountController::class, 'getAccountClasses'])->name('account-classes');
+        
+        // Other specific routes
         Route::get('/', [ChartOfAccountController::class, 'index'])->name('index');
         Route::get('/create', [ChartOfAccountController::class, 'create'])->name('create');
         Route::post('/', [ChartOfAccountController::class, 'store'])->name('store');
-        Route::get('/{chart_of_account}', [ChartOfAccountController::class, 'show'])->name('show');
-        Route::get('/{chart_of_account}/edit', [ChartOfAccountController::class, 'edit'])->name('edit');
-        Route::put('/{chart_of_account}', [ChartOfAccountController::class, 'update'])->name('update');
-        Route::delete('/{chart_of_account}', [ChartOfAccountController::class, 'destroy'])->name('destroy');
-        Route::post('/{chart_of_account}/status', [ChartOfAccountController::class, 'updateStatus'])->name('status');
-        
-        // New routes for import/export
         Route::post('/import', [ChartOfAccountController::class, 'import'])->name('import');
         Route::get('/export', [ChartOfAccountController::class, 'export'])->name('export');
         Route::get('/template', [ChartOfAccountController::class, 'template'])->name('template');
         Route::get('/load-more', [ChartOfAccountController::class, 'loadMore'])->name('load-more');
+        
+        // Parameterized routes last
+        Route::get('/{account}', [ChartOfAccountController::class, 'show'])->name('show');
+        Route::get('/{account}/edit', [ChartOfAccountController::class, 'edit'])->name('edit');
+        Route::put('/{account}', [ChartOfAccountController::class, 'update'])->name('update');
+        Route::delete('/{account}', [ChartOfAccountController::class, 'destroy'])->name('destroy');
+        Route::post('/{account}/status', [ChartOfAccountController::class, 'updateStatus'])->name('status');
     });
     
     // Journal Entries Routes
@@ -231,6 +236,9 @@ Route::middleware('auth')->group(function () {
         Route::post('/{asset}/maintenance', [AssetController::class, 'recordMaintenance'])->name('maintenance');
         Route::post('/{asset}/dispose', [AssetController::class, 'dispose'])->name('dispose');
         Route::get('/report', [AssetController::class, 'report'])->name('report');
+        
+        // Asset transactions route
+        Route::post('/{asset}/transactions', [AssetController::class, 'recordTransaction'])->name('transactions');
         
         // Asset categories
         Route::resource('categories', AssetCategoryController::class);

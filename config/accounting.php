@@ -233,4 +233,20 @@ return [
         'start_month' => 1, // January
         'end_month' => 12,  // December
     ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Default Accounts
+    |--------------------------------------------------------------------------
+    |
+    | Define default Chart of Account IDs for various transactions.
+    |
+    */
+    'default_accounts' => [
+        'bank' => '01.12.10.0001', // Example: Cash and Cash Equivalents account
+        'depreciation_expense' => '05.51.60.0001', // Example: Depreciation Expense account
+        'maintenance_expense' => '05.51.99.0001', // Placeholder: Please update with your actual Maintenance Expense account ID
+        'gain_on_disposal' => '04.41.99.0001', // Placeholder: Please update with your actual Gain on Disposal account ID
+        'loss_on_disposal' => '05.51.98.0001', // Placeholder: Please update with your actual Loss on Disposal account ID
+    ],
 ];

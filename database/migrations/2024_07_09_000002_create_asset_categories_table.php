@@ -16,7 +16,7 @@ return new class extends Migration
             $table->text('description')->nullable();
                 $table->string('depreciation_method')->default('straight_line');
                 $table->decimal('default_depreciation_rate', 5, 2)->default(0);
-                $table->integer('default_useful_life')->default(0);
+                $table->integer('default_useful_life')->default(1);
                 $table->boolean('is_active')->default(true);
                 $table->foreignId('created_by')->nullable()->constrained('users')->onDelete('restrict');
                 $table->foreignId('updated_by')->nullable()->constrained('users')->onDelete('restrict');
@@ -41,7 +41,7 @@ return new class extends Migration
                     $table->decimal('default_depreciation_rate', 5, 2)->default(0);
                 }
                 if (!Schema::hasColumn('asset_categories', 'default_useful_life')) {
-                    $table->integer('default_useful_life')->default(0);
+                    $table->integer('default_useful_life')->default(1);
                 }
                 if (!Schema::hasColumn('asset_categories', 'is_active')) {
                     $table->boolean('is_active')->default(true);

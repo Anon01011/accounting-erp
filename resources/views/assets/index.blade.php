@@ -41,7 +41,7 @@
                             </tr>
                         </thead>
                         <tbody class="bg-white divide-y divide-gray-200">
-                            @foreach($assets as $asset)
+                            @foreach($assets->items() as $asset)
                                 <tr class="hover:bg-gray-50 transition-colors duration-150">
                                     <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                                         {{ $asset->code }}
@@ -96,6 +96,11 @@
                         </tbody>
                     </table>
                 </div>
+                @if($assets->hasPages())
+                    <div class="flex justify-center mt-6">
+                        {{ $assets->links('vendor.pagination.tailwind') }}
+                    </div>
+                @endif
             </div>
         </div>
     </div>
@@ -109,22 +114,44 @@ function calculateDepreciation(assetId) {
             method: 'POST',
             headers: {
                 'X-CSRF-TOKEN': '{{ csrf_token() }}',
-                'Accept': 'application/json'
+                'Accept': 'application/json',
+                'Content-Type': 'application/json'
             }
         })
-        .then(response => response.json())
+        .then(response => {
+            if (!response.ok) {
+                return response.json().then(data => {
+                    throw new Error(data.message || 'Failed to calculate depreciation');
+                });
+            }
+            return response.json();
+        })
         .then(data => {
             if (data.success) {
-                showNotification('Depreciation calculated successfully: ' + data.amount, 'success');
+                showNotification(
+                    `Depreciation calculated successfully:
+                    Amount: ${formatCurrency(data.amount)}
+                    Current Value: ${formatCurrency(data.current_value)}
+                    Accumulated Depreciation: ${formatCurrency(data.accumulated_depreciation)}`,
+                    'success'
+                );
                 location.reload();
             } else {
                 showNotification(data.message || 'Failed to calculate depreciation', 'error');
             }
         })
         .catch(error => {
-            showNotification('An error occurred while calculating depreciation', 'error');
+            console.error('Depreciation calculation error:', error);
+            showNotification(error.message || 'An error occurred while calculating depreciation', 'error');
         });
     }
+}
+
+function formatCurrency(amount) {
+    return new Intl.NumberFormat('en-US', {
+        style: 'currency',
+        currency: 'USD'
+    }).format(amount);
 }
 
 function deleteAsset(assetId) {
@@ -149,9 +176,9 @@ function deleteAsset(assetId) {
     }
 }
 
-    function showNotification(message, type = 'success') {
+function showNotification(message, type = 'success') {
     const notification = document.createElement('div');
-    notification.className = `fixed top-4 right-4 p-4 rounded-lg shadow-lg transform transition-transform duration-300 translate-x-full`;
+    notification.className = `fixed top-4 right-4 p-4 rounded-lg shadow-lg transform transition-transform duration-300 translate-x-full z-50`;
     
     // Set background color based on type
     switch(type) {
@@ -168,35 +195,35 @@ function deleteAsset(assetId) {
             notification.classList.add('bg-blue-500');
     }
     
-        notification.innerHTML = `
-                <div class="flex items-center">
-                    <div class="flex-shrink-0">
+    notification.innerHTML = `
+        <div class="flex items-center">
+            <div class="flex-shrink-0">
                 ${type === 'success' ? 
                     '<svg class="h-6 w-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>' :
                     '<svg class="h-6 w-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>'
-                        }
-                    </div>
-                    <div class="ml-3">
-                <p class="text-sm font-medium text-white">${message}</p>
+                }
             </div>
+            <div class="ml-3">
+                <p class="text-sm font-medium text-white whitespace-pre-line">${message}</p>
             </div>
-        `;
+        </div>
+    `;
     
-        document.body.appendChild(notification);
+    document.body.appendChild(notification);
 
     // Animate in
     setTimeout(() => {
         notification.classList.remove('translate-x-full');
     }, 100);
     
-    // Remove after 3 seconds
+    // Remove after 5 seconds
     setTimeout(() => {
         notification.classList.add('translate-x-full');
         setTimeout(() => {
             notification.remove();
         }, 300);
-        }, 3000);
-    }
+    }, 5000);
+}
 </script>
 @endpush
 @endsection

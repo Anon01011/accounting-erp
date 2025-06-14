@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\Log;
 
 class AssetMaintenance extends Model
 {
@@ -21,7 +22,9 @@ class AssetMaintenance extends Model
         'cost',
         'performed_by',
         'next_maintenance_date',
-        'status'
+        'status',
+        'created_by',
+        'updated_by',
     ];
 
     protected $casts = [
@@ -35,6 +38,37 @@ class AssetMaintenance extends Model
     const TYPE_CORRECTIVE = 'corrective';
     const TYPE_PREDICTIVE = 'predictive';
     const TYPE_CONDITION_BASED = 'condition_based';
+
+    // Constants for maintenance types
+    const TYPES = [
+        'routine' => 'Routine Maintenance',
+        'repair' => 'Repair',
+        'inspection' => 'Inspection',
+        'upgrade' => 'Upgrade',
+        'other' => 'Other',
+    ];
+
+    protected static function boot()
+    {
+        parent::boot();
+
+        static::creating(function ($maintenance) {
+            Log::info('AssetMaintenance creating:', $maintenance->toArray());
+        });
+
+        static::created(function ($maintenance) {
+            Log::info('AssetMaintenance created:', $maintenance->toArray());
+        });
+
+        static::updating(function ($maintenance) {
+            Log::info('AssetMaintenance updating (original):', $maintenance->getOriginal());
+            Log::info('AssetMaintenance updating (changes):', $maintenance->getDirty());
+        });
+
+        static::updated(function ($maintenance) {
+            Log::info('AssetMaintenance updated:', $maintenance->toArray());
+        });
+    }
 
     // Relationships
     public function asset(): BelongsTo

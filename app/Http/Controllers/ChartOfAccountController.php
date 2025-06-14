@@ -325,4 +325,91 @@ class ChartOfAccountController extends Controller
         $classes = config('accounting.account_classes.' . $typeCode . '.' . $groupCode);
         return response()->json($classes);
     }
+
+    public function filter(Request $request)
+    {
+        try {
+            $query = ChartOfAccount::query();
+
+            // Apply search filter
+            if ($request->has('search') && !empty($request->search)) {
+                $search = $request->search;
+                $query->where(function($q) use ($search) {
+                    $q->where('name', 'like', "%{$search}%")
+                      ->orWhere('account_code', 'like', "%{$search}%");
+                });
+            }
+
+            // Apply type filter
+            if ($request->has('type') && !empty($request->type)) {
+                $query->where('type_code', $request->type);
+            }
+
+            // Apply status filter
+            if ($request->has('status') && $request->status !== '') {
+                $query->where('is_active', $request->status);
+            }
+
+            // Apply sorting
+            if ($request->has('sort')) {
+                $sortParts = explode('_', $request->sort);
+                $column = $sortParts[0];
+                $direction = $sortParts[1] ?? 'asc';
+
+                // Handle special cases for sorting
+                switch ($column) {
+                    case 'created':
+                        $column = 'created_at';
+                        break;
+                    case 'updated':
+                        $column = 'updated_at';
+                        break;
+                }
+
+                $query->orderBy($column, $direction);
+            } else {
+                $query->orderBy('created_at', 'desc');
+            }
+
+            // Get parent accounts with their children
+            $accounts = $query->whereNull('parent_id')
+                            ->with('children')
+                            ->take(15)
+                            ->get();
+
+            // Transform the data for the response
+            $transformedAccounts = $accounts->map(function ($account) {
+                return [
+                    'id' => $account->id,
+                    'account_code' => $account->account_code,
+                    'name' => $account->name,
+                    'type_code' => $account->type_code,
+                    'type_name' => config('accounting.account_types.' . $account->type_code),
+                    'is_active' => $account->is_active,
+                    'children' => $account->children->map(function ($child) {
+                        return [
+                            'id' => $child->id,
+                            'account_code' => $child->account_code,
+                            'name' => $child->name,
+                            'type_code' => $child->type_code,
+                            'type_name' => config('accounting.account_types.' . $child->type_code),
+                            'is_active' => $child->is_active,
+                        ];
+                    }),
+                ];
+            });
+
+            return response()->json([
+                'success' => true,
+                'accounts' => $transformedAccounts,
+                'hasMore' => $query->count() > 15
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to filter accounts: ' . $e->getMessage()
+            ], 500);
+        }
+    }
 }

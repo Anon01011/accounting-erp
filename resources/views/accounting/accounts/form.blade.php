@@ -1,4 +1,4 @@
-@extends('layouts.app')
+@extends('layouts.dashboard')
 
 @section('title', isset($account) ? 'Edit Account' : 'Create Account')
 
@@ -174,23 +174,131 @@
 @endsection
 
 @push('scripts')
+<!-- jQuery -->
+<script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+
 <script>
-    $(document).ready(function() {
-        // Update class options based on selected group
-        $('#group_code').change(function() {
-            var groupCode = $(this).val();
-            var classSelect = $('#class_code');
-            classSelect.empty().append('<option value="">Select Class</option>');
-            if (groupCode) {
-                $.get('/api/account-classes/' + groupCode, function(classes) {
-                    $.each(classes, function(code, name) {
-                        classSelect.append(
-                            $('<option></option>').val(code).html(name)
-                        );
-                    });
-                });
+    document.addEventListener('DOMContentLoaded', function() {
+        console.log('Form view loaded'); // Debug log
+
+        // Set up CSRF token for all AJAX requests
+        $.ajaxSetup({
+            headers: {
+                'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
             }
         });
+
+        // Function to update group options
+        function updateGroups(typeCode) {
+            console.log('Updating groups for type:', typeCode); // Debug log
+            
+            var groupSelect = $('#group_code');
+            var classSelect = $('#class_code');
+            
+            // Clear both selects
+            groupSelect.empty().append('<option value="">Select Group</option>');
+            classSelect.empty().append('<option value="">Select Class</option>');
+            
+            if (typeCode) {
+                // Make AJAX call to get groups
+                $.ajax({
+                    url: '{{ route("chart-of-accounts.account-groups") }}',
+                    method: 'GET',
+                    data: { type_code: typeCode },
+                    dataType: 'json',
+                    success: function(response) {
+                        console.log('Groups response:', response); // Debug log
+                        
+                        // Populate the group select
+                        $.each(response, function(code, name) {
+                            groupSelect.append(
+                                $('<option></option>').val(code).html(name)
+                            );
+                        });
+
+                        // If there's only one group, select it automatically
+                        if (Object.keys(response).length === 1) {
+                            groupSelect.val(Object.keys(response)[0]).trigger('change');
+                        }
+                    },
+                    error: function(xhr, status, error) {
+                        console.error('Error fetching groups:', error);
+                        console.log('Response:', xhr.responseText); // Debug log
+                        alert('Error loading account groups. Please try again.');
+                    }
+                });
+            }
+        }
+
+        // Function to update class options
+        function updateClasses(typeCode, groupCode) {
+            console.log('Updating classes for type:', typeCode, 'group:', groupCode); // Debug log
+            
+            var classSelect = $('#class_code');
+            classSelect.empty().append('<option value="">Select Class</option>');
+            
+            if (groupCode && typeCode) {
+                // Make AJAX call to get classes
+                $.ajax({
+                    url: '{{ route("chart-of-accounts.account-classes") }}',
+                    method: 'GET',
+                    data: { 
+                        type_code: typeCode,
+                        group_code: groupCode
+                    },
+                    dataType: 'json',
+                    success: function(response) {
+                        console.log('Classes response:', response); // Debug log
+                        
+                        // Populate the class select
+                        $.each(response, function(code, name) {
+                            classSelect.append(
+                                $('<option></option>').val(code).html(name)
+                            );
+                        });
+
+                        // If there's only one class, select it automatically
+                        if (Object.keys(response).length === 1) {
+                            classSelect.val(Object.keys(response)[0]);
+                        }
+                    },
+                    error: function(xhr, status, error) {
+                        console.error('Error fetching classes:', error);
+                        console.log('Response:', xhr.responseText); // Debug log
+                        alert('Error loading account classes. Please try again.');
+                    }
+                });
+            }
+        }
+
+        // Event handler for type change
+        $('#type_code').on('change', function() {
+            var typeCode = $(this).val();
+            console.log('Type changed to:', typeCode); // Debug log
+            updateGroups(typeCode);
+        });
+
+        // Event handler for group change
+        $('#group_code').on('change', function() {
+            var groupCode = $(this).val();
+            var typeCode = $('#type_code').val();
+            console.log('Group changed to:', groupCode, 'for type:', typeCode); // Debug log
+            updateClasses(typeCode, groupCode);
+        });
+
+        // Initialize on page load if type is selected
+        var initialType = $('#type_code').val();
+        console.log('Form view - Initial type:', initialType); // Debug log
+        
+        if (initialType) {
+            updateGroups(initialType);
+            
+            var initialGroup = $('#group_code').val();
+            if (initialGroup) {
+                console.log('Form view - Initial group:', initialGroup); // Debug log
+                updateClasses(initialType, initialGroup);
+            }
+        }
     });
 </script>
 @endpush 

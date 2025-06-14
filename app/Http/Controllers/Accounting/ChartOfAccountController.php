@@ -22,8 +22,9 @@ class ChartOfAccountController extends Controller
 
     public function index()
     {
-        // Load initial 15 accounts with their relationships
+        // Load initial 15 parent accounts with their relationships
         $accounts = ChartOfAccount::with(['parent', 'children'])
+            ->whereNull('parent_id')  // Only get parent accounts
             ->orderBy('type_code')
             ->orderBy('group_code')
             ->orderBy('class_code')
@@ -31,7 +32,7 @@ class ChartOfAccountController extends Controller
             ->take(15)
             ->get();
 
-        $hasMore = ChartOfAccount::count() > 15;
+        $hasMore = ChartOfAccount::whereNull('parent_id')->count() > 15;
 
         return view('chart-of-accounts.index', compact('accounts', 'hasMore'));
     }
@@ -42,6 +43,7 @@ class ChartOfAccountController extends Controller
         $limit = 15;
 
         $accounts = ChartOfAccount::with(['parent', 'children'])
+            ->whereNull('parent_id')  // Only get parent accounts
             ->orderBy('type_code')
             ->orderBy('group_code')
             ->orderBy('class_code')
@@ -50,7 +52,7 @@ class ChartOfAccountController extends Controller
             ->take($limit)
             ->get();
 
-        $hasMore = ChartOfAccount::count() > ($offset + $limit);
+        $hasMore = ChartOfAccount::whereNull('parent_id')->count() > ($offset + $limit);
 
         return response()->json([
             'accounts' => $accounts,
@@ -72,6 +74,8 @@ class ChartOfAccountController extends Controller
 
     public function store(Request $request)
     {
+        Log::info('Starting account creation process', ['request_data' => $request->all()]);
+
         $validated = $request->validate([
             'type_code' => 'required|string|max:3',
             'group_code' => 'required|string|max:8',
@@ -82,25 +86,40 @@ class ChartOfAccountController extends Controller
             'is_active' => 'boolean',
         ]);
 
+        Log::info('Validation passed', ['validated_data' => $validated]);
+
         DB::beginTransaction();
         try {
             // Generate account code if not provided
             if (!isset($validated['account_code'])) {
-                $validated['account_code'] = ChartOfAccount::generateAccountId(
+                Log::info('Generating account code');
+                $validated['account_code'] = ChartOfAccount::generateAccountCode(
                     $validated['type_code'],
                     $validated['group_code'],
                     $validated['class_code']
                 );
+                Log::info('Generated account code', ['account_code' => $validated['account_code']]);
             }
 
             $validated['created_by'] = Auth::id();
+            Log::info('Creating account with data', ['account_data' => $validated]);
+            
             $account = ChartOfAccount::create($validated);
+            Log::info('Account created successfully', ['account_id' => $account->id, 'account_code' => $account->account_code]);
 
             DB::commit();
+            Log::info('Transaction committed successfully');
+            
             return redirect()->route('chart-of-accounts.index')
                 ->with('success', 'Account created successfully.');
         } catch (\Exception $e) {
             DB::rollBack();
+            Log::error('Error creating account', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+                'request_data' => $request->all()
+            ]);
+            
             return redirect()->back()
                 ->with('error', 'Error creating account: ' . $e->getMessage())
                 ->withInput();
@@ -109,6 +128,8 @@ class ChartOfAccountController extends Controller
 
     public function edit(ChartOfAccount $account)
     {
+        Log::info('Editing account', ['account_id' => $account->id, 'account_code' => $account->account_code]);
+
         $parentAccounts = ChartOfAccount::where('is_active', true)
             ->where('id', '!=', $account->id)
             ->orderBy('type_code')
@@ -119,17 +140,20 @@ class ChartOfAccountController extends Controller
 
         // Load account types from config
         $accountTypes = config('accounting.account_types', []);
-        
+        Log::info('Loaded account types', ['account_types' => $accountTypes]);
+
         // Load account groups for the current type
         $accountGroups = [];
         if ($account->type_code) {
-            $accountGroups = config('accounting.account_groups.' . $account->type_code, []);
+            $accountGroups = config('accounting.groups.' . $account->type_code, []);
+            Log::info('Loaded account groups', ['type_code' => $account->type_code, 'account_groups' => $accountGroups]);
         }
-        
+
         // Load account classes for the current type and group
         $accountClasses = [];
         if ($account->type_code && $account->group_code) {
-            $accountClasses = config('accounting.account_classes.' . $account->type_code . '.' . $account->group_code, []);
+            $accountClasses = config('accounting.classes.' . $account->type_code . '.' . $account->group_code, []);
+            Log::info('Loaded account classes', ['type_code' => $account->type_code, 'group_code' => $account->group_code, 'account_classes' => $accountClasses]);
         }
 
         return view('chart-of-accounts.edit', compact(
@@ -144,13 +168,13 @@ class ChartOfAccountController extends Controller
     public function update(Request $request, ChartOfAccount $account)
     {
         $validated = $request->validate([
-            'type_code' => 'required|string|max:3',
-            'group_code' => 'required|string|max:8',
-            'class_code' => 'required|string|max:2',
+            'type_code' => 'required|string|max:2',
+            'group_code' => 'required|string|max:2',
+            'class_code' => 'required|string|max:3',
             'account_code' => [
                 'required',
                 'string',
-                'size:19',
+                'max:9',
                 Rule::unique('chart_of_accounts')->ignore($account->id)
             ],
             'name' => 'required|string|max:255',
@@ -170,7 +194,7 @@ class ChartOfAccountController extends Controller
 
         } catch (\Exception $e) {
             DB::rollBack();
-            \Log::error('Error updating account: ' . $e->getMessage());
+            Log::error('Error updating account: ' . $e->getMessage());
             return back()->with('error', 'Failed to update account: ' . $e->getMessage());
         }
     }
@@ -203,14 +227,57 @@ class ChartOfAccountController extends Controller
     // API endpoints for dynamic form updates
     public function getAccountGroups(Request $request)
     {
-        $groups = config('accounting.account_groups.' . $request->type_code);
-        return response()->json($groups);
+        try {
+            Log::info('Fetching account groups', ['type_code' => $request->type_code]);
+            
+            if (!$request->type_code) {
+                return response()->json(['error' => 'Type code is required'], 400);
+            }
+            
+            $groups = config('accounting.groups.' . $request->type_code, []);
+            Log::info('Account groups response', ['groups' => $groups]);
+            
+            if (empty($groups)) {
+                return response()->json(['error' => 'No groups found for the selected type'], 404);
+            }
+            
+            return response()->json($groups);
+        } catch (\Exception $e) {
+            Log::error('Error fetching account groups', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            return response()->json(['error' => 'Failed to fetch account groups: ' . $e->getMessage()], 500);
+        }
     }
 
     public function getAccountClasses(Request $request)
     {
-        $classes = config('accounting.account_classes.' . $request->type_code . '.' . $request->group_code);
-        return response()->json($classes);
+        try {
+            Log::info('Fetching account classes', [
+                'type_code' => $request->type_code,
+                'group_code' => $request->group_code
+            ]);
+            
+            if (!$request->type_code || !$request->group_code) {
+                return response()->json(['error' => 'Type code and group code are required'], 400);
+            }
+            
+            $classes = config('accounting.classes.' . $request->type_code . '.' . $request->group_code, []);
+            Log::info('Account classes response', ['classes' => $classes]);
+            
+            if (empty($classes)) {
+                return response()->json(['error' => 'No classes found for the selected type and group'], 404);
+            }
+            
+            return response()->json($classes);
+        } catch (\Exception $e) {
+            Log::error('Error fetching account classes', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            return response()->json(['error' => 'Failed to fetch account classes: ' . $e->getMessage()], 500);
+        }
     }
 
     public function getParentAccounts(Request $request)
@@ -251,7 +318,7 @@ class ChartOfAccountController extends Controller
             ]);
         } catch (\Exception $e) {
             DB::rollBack();
-            \Log::error('Error updating account status', [
+            Log::error('Error updating account status', [
                 'account_id' => $account->id,
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString()
@@ -423,14 +490,13 @@ class ChartOfAccountController extends Controller
         }
     }
 
-    public function show(\App\Domains\Accounting\Models\ChartOfAccount $chart_of_account)
+    public function show(ChartOfAccount $account)
     {
-        $account = $chart_of_account;
         // Load relationships
         $account->load(['parent', 'children']);
 
         // Get related accounts (accounts with the same type, group, and class)
-$relatedAccounts = \App\Domains\Accounting\Models\ChartOfAccount::where('type_code', $account->type_code)
+        $relatedAccounts = ChartOfAccount::where('type_code', $account->type_code)
             ->where('group_code', $account->group_code)
             ->where('class_code', $account->class_code)
             ->where('id', '!=', $account->id)

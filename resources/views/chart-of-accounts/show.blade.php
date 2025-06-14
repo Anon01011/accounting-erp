@@ -37,14 +37,14 @@
                     {{ $account->name }}
                 </h2>
                 <div class="flex space-x-3">
-                    <a href="{{ route('chart-of-accounts.edit', ['chart_of_account' => $account->id]) }}" 
+                    <a href="{{ route('chart-of-accounts.edit', $account) }}" 
                        class="inline-flex items-center px-4 py-2 bg-[#01657F] border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-[#01556F] focus:outline-none focus:ring-2 focus:ring-[#01657F] focus:ring-offset-2 transition ease-in-out duration-150">
                         <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
                         </svg>
                         Edit Account
                     </a>
-                    <form action="{{ route('chart-of-accounts.destroy', ['chart_of_account' => $account->id]) }}" method="POST" class="inline">
+                    <form action="{{ route('chart-of-accounts.destroy', $account) }}" method="POST" class="inline">
                         @csrf
                         @method('DELETE')
                         <button type="submit" 
@@ -60,7 +60,7 @@
             </div>
 
             <!-- Main Content Grid -->
-            <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <!-- Left Column - Main Content -->
                 <div class="lg:col-span-8 space-y-6">
                 <!-- Account Details Card -->
@@ -387,7 +387,7 @@
                             <div class="space-y-3">
                                 @if($relatedAccounts && $relatedAccounts->count() > 0)
                                     @foreach($relatedAccounts as $related)
-                                        <a href="{{ route('chart-of-accounts.show', ['chart_of_account' => $related->id]) }}" 
+                                        <a href="{{ route('chart-of-accounts.show', ['account' => $related->id]) }}" 
                                            class="block p-4 bg-white rounded-xl border border-[#01657F]/10 hover:border-[#01657F]/30 hover:shadow-md transition-all duration-300 transform hover:-translate-y-1">
                                             <div class="flex justify-between items-center">
                                                 <div>

@@ -8,7 +8,6 @@ Route::prefix('chart-of-accounts')->group(function () {
     Route::post('/generate-account-number', [ChartOfAccountController::class, 'generateAccountNumber']);
 });
 
-Route::middleware('auth:sanctum')->group(function () {
-    Route::get('/account-groups', [ChartOfAccountController::class, 'getAccountGroups']);
-    Route::get('/account-classes', [ChartOfAccountController::class, 'getAccountClasses']);
-}); 
+// Make these routes public
+Route::get('/account-groups', [ChartOfAccountController::class, 'getAccountGroups']);
+Route::get('/account-classes', [ChartOfAccountController::class, 'getAccountClasses']); 
