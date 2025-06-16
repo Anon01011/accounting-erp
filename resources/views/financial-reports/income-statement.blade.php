@@ -1,55 +1,90 @@
 @extends('layouts.dashboard')
 
 @section('content')
-<h1 class="text-2xl font-bold mb-4">Income Statement</h1>
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">Income Statement</h3>
+                    <div class="card-tools">
+                        <form method="GET" class="form-inline">
+                            <div class="form-group mr-2">
+                                <label for="start_date" class="mr-2">Start Date:</label>
+                                <input type="date" id="start_date" name="start_date" value="{{ $startDate }}" class="form-control">
+                            </div>
+                            <div class="form-group mr-2">
+                                <label for="end_date" class="mr-2">End Date:</label>
+                                <input type="date" id="end_date" name="end_date" value="{{ $endDate }}" class="form-control">
+                            </div>
+                            <button type="submit" class="btn btn-primary">Update</button>
+                        </form>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-12">
+                            <h4 class="mb-3">Revenue</h4>
+                            <table class="table table-bordered">
+                                <thead>
+                                    <tr>
+                                        <th>Account Code</th>
+                                        <th>Account Name</th>
+                                        <th class="text-right">Amount</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach ($revenueAccounts as $account)
+                                        <tr>
+                                            <td>{{ $account->code }}</td>
+                                            <td>{{ $account->name }}</td>
+                                            <td class="text-right">{{ number_format($revenueBalances[$account->id] ?? 0, 2) }}</td>
+                                        </tr>
+                                    @endforeach
+                                    <tr class="font-bold">
+                                        <td colspan="2">Total Revenue</td>
+                                        <td class="text-right">{{ number_format($totalRevenue, 2) }}</td>
+                                    </tr>
+                                </tbody>
+                            </table>
 
-<form method="GET" class="mb-4">
-    <label for="start_date" class="mr-2">Start Date:</label>
-    <input type="date" id="start_date" name="start_date" value="{{ $startDate }}" class="border rounded px-2 py-1 mr-4">
+                            <h4 class="mb-3 mt-4">Expenses</h4>
+                            <table class="table table-bordered">
+                                <thead>
+                                    <tr>
+                                        <th>Account Code</th>
+                                        <th>Account Name</th>
+                                        <th class="text-right">Amount</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach ($expenseAccounts as $account)
+                                        <tr>
+                                            <td>{{ $account->code }}</td>
+                                            <td>{{ $account->name }}</td>
+                                            <td class="text-right">{{ number_format($expenseBalances[$account->id] ?? 0, 2) }}</td>
+                                        </tr>
+                                    @endforeach
+                                    <tr class="font-bold">
+                                        <td colspan="2">Total Expenses</td>
+                                        <td class="text-right">{{ number_format($totalExpenses, 2) }}</td>
+                                    </tr>
+                                </tbody>
+                            </table>
 
-    <label for="end_date" class="mr-2">End Date:</label>
-    <input type="date" id="end_date" name="end_date" value="{{ $endDate }}" class="border rounded px-2 py-1 mr-4">
-
-    <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded">Filter</button>
-</form>
-
-<h2 class="text-xl font-semibold mb-2">Revenue</h2>
-<table class="min-w-full bg-white border border-gray-200 mb-6">
-    <thead>
-        <tr>
-            <th class="border px-4 py-2">Account Code</th>
-            <th class="border px-4 py-2">Account Name</th>
-            <th class="border px-4 py-2">Balance</th>
-        </tr>
-    </thead>
-    <tbody>
-        @foreach ($revenueAccounts as $account)
-            <tr>
-                <td class="border px-4 py-2">{{ $account->code }}</td>
-                <td class="border px-4 py-2">{{ $account->name }}</td>
-                <td class="border px-4 py-2 text-right">{{ number_format($revenueBalances[$account->id] ?? 0, 2) }}</td>
-            </tr>
-        @endforeach
-    </tbody>
-</table>
-
-<h2 class="text-xl font-semibold mb-2">Expenses</h2>
-<table class="min-w-full bg-white border border-gray-200">
-    <thead>
-        <tr>
-            <th class="border px-4 py-2">Account Code</th>
-            <th class="border px-4 py-2">Account Name</th>
-            <th class="border px-4 py-2">Balance</th>
-        </tr>
-    </thead>
-    <tbody>
-        @foreach ($expenseAccounts as $account)
-            <tr>
-                <td class="border px-4 py-2">{{ $account->code }}</td>
-                <td class="border px-4 py-2">{{ $account->name }}</td>
-                <td class="border px-4 py-2 text-right">{{ number_format($expenseBalances[$account->id] ?? 0, 2) }}</td>
-            </tr>
-        @endforeach
-    </tbody>
-</table>
+                            <div class="mt-4">
+                                <table class="table table-bordered">
+                                    <tr class="font-bold">
+                                        <td>Net Income</td>
+                                        <td class="text-right">{{ number_format($netIncome, 2) }}</td>
+                                    </tr>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
 @endsection

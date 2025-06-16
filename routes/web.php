@@ -44,6 +44,7 @@ use App\Http\Controllers\Asset\CategoryController as AssetCategoryController;
 use App\Http\Controllers\AssetDocumentController;
 use App\Http\Controllers\Settings\TaxGroupController;
 use App\Http\Controllers\Settings\TaxRateController;
+use App\Http\Controllers\Audit\AuditLogController;
 
 // Redirect root to login
 Route::get('/', function () {
@@ -99,10 +100,12 @@ Route::middleware('auth')->group(function () {
     Route::get('journal-entries/{journalEntry}/export/pdf', [JournalEntryController::class, 'exportSinglePdf'])->name('journal-entries.export.single.pdf');
     Route::get('journal-entries/{journalEntry}/export/excel', [JournalEntryController::class, 'exportSingleExcel'])->name('journal-entries.export.single.excel');
 
-    // Financial Reports
-    Route::get('/financial-reports/balance-sheet', [FinancialReportController::class, 'balanceSheet'])->name('financial-reports.balance-sheet');
-    Route::get('/financial-reports/income-statement', [FinancialReportController::class, 'incomeStatement'])->name('financial-reports.income-statement');
-    Route::get('/financial-reports/trial-balance', [FinancialReportController::class, 'trialBalance'])->name('financial-reports.trial-balance');
+    // Financial Reports Routes
+    Route::prefix('financial-reports')->name('financial-reports.')->middleware(['auth'])->group(function () {
+        Route::get('/balance-sheet', [FinancialReportController::class, 'balanceSheet'])->name('balance-sheet');
+        Route::get('/income-statement', [FinancialReportController::class, 'incomeStatement'])->name('income-statement');
+        Route::get('/trial-balance', [FinancialReportController::class, 'trialBalance'])->name('trial-balance');
+    });
 
     // Sales Module Routes
     Route::prefix('sales')->name('sales.')->group(function () {
@@ -179,7 +182,7 @@ Route::middleware('auth')->group(function () {
     });
 
     // Reports Module Routes
-    Route::prefix('reports')->name('reports.')->group(function () {
+    Route::prefix('reports')->name('reports.')->middleware(['auth'])->group(function () {
         Route::get('cash-flow', [CashFlowController::class, 'index'])->name('cash-flow.index');
     });
 
@@ -251,4 +254,14 @@ Route::middleware('auth')->group(function () {
         // New route for generating asset codes
         Route::get('/generate-code/{category}', [AssetController::class, 'generateCode'])->name('generate-code');
     });
+
+    // Audit Logs Routes
+    Route::get('/audit-logs', [AuditLogController::class, 'index'])->name('audit-logs.index');
+    Route::get('/audit-logs/{auditLog}', [AuditLogController::class, 'show'])->name('audit-logs.show');
+
+    // Document Management Routes
+    Route::get('/documents', [DocumentController::class, 'index'])->name('documents.index');
+    Route::post('/documents', [DocumentController::class, 'store'])->name('documents.store');
+    Route::delete('/documents/{document}', [DocumentController::class, 'destroy'])->name('documents.destroy');
+    Route::get('/documents/{document}/download', [DocumentController::class, 'download'])->name('documents.download');
 });

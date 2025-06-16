@@ -9,10 +9,11 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use App\Traits\AssetCalculations;
+use App\Traits\HasAuditLogs;
 
 class ChartOfAccount extends Model
 {
-    use HasFactory, SoftDeletes, AssetCalculations;
+    use HasFactory, SoftDeletes, AssetCalculations, HasAuditLogs;
 
     protected $fillable = [
         'type_code',

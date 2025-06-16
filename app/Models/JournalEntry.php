@@ -2,6 +2,8 @@
 
 namespace App\Models;
 
+use App\Traits\HasAuditLogs;
+use App\Traits\HasDocuments;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -9,7 +11,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class JournalEntry extends Model
 {
-    use SoftDeletes;
+    use SoftDeletes, HasAuditLogs, HasDocuments;
 
     protected $fillable = [
         'entry_date',

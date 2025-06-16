@@ -657,6 +657,14 @@ use Illuminate\Support\Facades\Auth;
                             <i class="fas fa-hand-holding-usd menu-icon"></i>
                             <span class="menu-text">Receipts</span>
                         </a>
+                        <a href="{{ route('audit-logs.index') }}" class="menu-link submenu-link">
+                            <i class="fas fa-history menu-icon"></i>
+                            <span class="menu-text">Audit Logs</span>
+                        </a>
+                        <a href="{{ route('documents.index') }}" class="menu-link submenu-link">
+                            <i class="fas fa-file-alt menu-icon"></i>
+                            <span class="menu-text">Document Management</span>
+                        </a>
                     </div>
                 </div>
 

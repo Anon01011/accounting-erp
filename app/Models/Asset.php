@@ -13,10 +13,11 @@ use Illuminate\Database\Eloquent\Relations\HasManyThrough;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Log;
 use App\Traits\AssetCalculations;
+use App\Traits\HasAuditLogs;
 
 class Asset extends Model
 {
-    use HasFactory, SoftDeletes, AssetCalculations;
+    use HasFactory, SoftDeletes, AssetCalculations, HasAuditLogs;
 
     protected $fillable = [
         'name',

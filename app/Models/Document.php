@@ -11,23 +11,29 @@ class Document extends Model
     use HasFactory, SoftDeletes;
 
     protected $fillable = [
-        'employee_id',
-        'title',
-        'type',
+        'name',
         'file_path',
-        'description',
-        'upload_date',
-        'expiry_date',
-        'status',
-        'created_by',
-        'updated_by'
+        'file_type',
+        'file_size',
+        'documentable_type',
+        'documentable_id',
+        'user_id',
+        'description'
     ];
 
     protected $casts = [
-        'upload_date' => 'date',
-        'expiry_date' => 'date',
-        'status' => 'boolean'
+        'file_size' => 'integer',
     ];
+
+    public function documentable()
+    {
+        return $this->morphTo();
+    }
+
+    public function user()
+    {
+        return $this->belongsTo(User::class);
+    }
 
     public function employee()
     {

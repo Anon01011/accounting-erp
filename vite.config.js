@@ -8,7 +8,8 @@ export default defineConfig({
             input: [
                 'resources/css/app.css',
                 'resources/js/app.js',
-                'resources/js/journal-entry.js'
+                'resources/js/journal-entry.js',
+                'resources/js/components/DocumentUploader.js'
             ],
             refresh: true,
         }),
