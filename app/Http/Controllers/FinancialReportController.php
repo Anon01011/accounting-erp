@@ -18,7 +18,7 @@ class FinancialReportController extends Controller
 
             // Get all accounts grouped by type
             $accounts = ChartOfAccount::where('is_active', true)
-                ->orderBy('code')
+                ->orderBy('account_code')
                 ->get()
                 ->groupBy('type_code');
 
@@ -46,7 +46,7 @@ class FinancialReportController extends Controller
 
             return view('financial-reports.balance-sheet', compact('accounts', 'balances', 'date', 'totals', 'netIncome'));
         } catch (\Exception $e) {
-            \Log::error('Balance Sheet Error: ' . $e->getMessage());
+            Log::error('Balance Sheet Error: ' . $e->getMessage());
             return redirect()->back()->with('error', 'Error generating balance sheet: ' . $e->getMessage());
         }
     }
@@ -60,12 +60,12 @@ class FinancialReportController extends Controller
             // Get revenue and expense accounts
             $revenueAccounts = ChartOfAccount::where('type_code', 'REVENUE')
                 ->where('is_active', true)
-                ->orderBy('code')
+                ->orderBy('account_code')
                 ->get();
 
             $expenseAccounts = ChartOfAccount::where('type_code', 'EXPENSE')
                 ->where('is_active', true)
-                ->orderBy('code')
+                ->orderBy('account_code')
                 ->get();
 
             // Calculate balances
@@ -100,7 +100,7 @@ class FinancialReportController extends Controller
                 'netIncome'
             ));
         } catch (\Exception $e) {
-            \Log::error('Income Statement Error: ' . $e->getMessage());
+            Log::error('Income Statement Error: ' . $e->getMessage());
             return redirect()->back()->with('error', 'Error generating income statement: ' . $e->getMessage());
         }
     }
@@ -111,7 +111,7 @@ class FinancialReportController extends Controller
             $date = $request->get('date', now()->format('Y-m-d'));
 
             $accounts = ChartOfAccount::where('is_active', true)
-                ->orderBy('code')
+                ->orderBy('account_code')
                 ->get();
 
             $balances = [];
@@ -135,7 +135,7 @@ class FinancialReportController extends Controller
 
             return view('financial-reports.trial-balance', compact('accounts', 'balances', 'date', 'totalDebits', 'totalCredits'));
         } catch (\Exception $e) {
-            \Log::error('Trial Balance Error: ' . $e->getMessage());
+            Log::error('Trial Balance Error: ' . $e->getMessage());
             return redirect()->back()->with('error', 'Error generating trial balance: ' . $e->getMessage());
         }
     }
@@ -145,10 +145,10 @@ class FinancialReportController extends Controller
         $query = JournalEntry::join('journal_entry_items', 'journal_entries.id', '=', 'journal_entry_items.journal_entry_id')
             ->where('journal_entries.status', 'posted')
             ->where('journal_entry_items.chart_of_account_id', $accountId)
-            ->where('journal_entries.transaction_date', '<=', $endDate);
+            ->where('journal_entries.entry_date', '<=', $endDate);
 
         if ($startDate) {
-            $query->where('journal_entries.transaction_date', '>=', $startDate);
+            $query->where('journal_entries.entry_date', '>=', $startDate);
         }
 
         $debits = (clone $query)->sum('journal_entry_items.debit');
@@ -162,7 +162,7 @@ class FinancialReportController extends Controller
         return JournalEntry::join('journal_entry_items', 'journal_entries.id', '=', 'journal_entry_items.journal_entry_id')
             ->where('journal_entries.status', 'posted')
             ->where('journal_entry_items.chart_of_account_id', $accountId)
-            ->where('journal_entries.transaction_date', '<=', $date)
+            ->where('journal_entries.entry_date', '<=', $date)
             ->sum('journal_entry_items.debit');
     }
 
@@ -171,7 +171,7 @@ class FinancialReportController extends Controller
         return JournalEntry::join('journal_entry_items', 'journal_entries.id', '=', 'journal_entry_items.journal_entry_id')
             ->where('journal_entries.status', 'posted')
             ->where('journal_entry_items.chart_of_account_id', $accountId)
-            ->where('journal_entries.transaction_date', '<=', $date)
+            ->where('journal_entries.entry_date', '<=', $date)
             ->sum('journal_entry_items.credit');
     }
 
@@ -179,24 +179,24 @@ class FinancialReportController extends Controller
     {
         $startDate = Carbon::parse($date)->startOfYear()->format('Y-m-d');
         
-        $revenueAccounts = ChartOfAccount::where('type', 'Revenue')
+        $revenueAccounts = ChartOfAccount::where('type_code', 'REVENUE')
             ->where('is_active', true)
             ->pluck('id');
             
-        $expenseAccounts = ChartOfAccount::where('type', 'Expense')
+        $expenseAccounts = ChartOfAccount::where('type_code', 'EXPENSE')
             ->where('is_active', true)
             ->pluck('id');
 
         $totalRevenue = JournalEntry::join('journal_entry_items', 'journal_entries.id', '=', 'journal_entry_items.journal_entry_id')
             ->where('journal_entries.status', 'posted')
             ->whereIn('journal_entry_items.chart_of_account_id', $revenueAccounts)
-            ->whereBetween('journal_entries.transaction_date', [$startDate, $date])
+            ->whereBetween('journal_entries.entry_date', [$startDate, $date])
             ->sum(DB::raw('journal_entry_items.debit - journal_entry_items.credit'));
 
         $totalExpenses = JournalEntry::join('journal_entry_items', 'journal_entries.id', '=', 'journal_entry_items.journal_entry_id')
             ->where('journal_entries.status', 'posted')
             ->whereIn('journal_entry_items.chart_of_account_id', $expenseAccounts)
-            ->whereBetween('journal_entries.transaction_date', [$startDate, $date])
+            ->whereBetween('journal_entries.entry_date', [$startDate, $date])
             ->sum(DB::raw('journal_entry_items.debit - journal_entry_items.credit'));
 
         return $totalRevenue - $totalExpenses;
