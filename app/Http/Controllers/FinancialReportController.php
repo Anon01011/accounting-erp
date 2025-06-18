@@ -57,31 +57,24 @@ class FinancialReportController extends Controller
             $startDate = $request->get('start_date', now()->startOfMonth()->format('Y-m-d'));
             $endDate = $request->get('end_date', now()->format('Y-m-d'));
 
-            // Get revenue and expense accounts
-            $revenueAccounts = ChartOfAccount::where('type_code', 'REVENUE')
-                ->where('is_active', true)
-                ->orderBy('account_code')
-                ->get();
+            // Get revenue and expense accounts using model scopes
+            $revenueAccounts = ChartOfAccount::active()->ofType('REVENUE')->orderBy('account_code')->get();
+            $expenseAccounts = ChartOfAccount::active()->ofType('EXPENSE')->orderBy('account_code')->get();
 
-            $expenseAccounts = ChartOfAccount::where('type_code', 'EXPENSE')
-                ->where('is_active', true)
-                ->orderBy('account_code')
-                ->get();
-
-            // Calculate balances
+            // Calculate balances using model attributes
             $revenueBalances = [];
             $expenseBalances = [];
             $totalRevenue = 0;
             $totalExpenses = 0;
 
             foreach ($revenueAccounts as $account) {
-                $balance = $this->calculateAccountBalance($account->id, $endDate, $startDate);
+                $balance = $account->balance; // Use model attribute
                 $revenueBalances[$account->id] = $balance;
                 $totalRevenue += $balance;
             }
 
             foreach ($expenseAccounts as $account) {
-                $balance = $this->calculateAccountBalance($account->id, $endDate, $startDate);
+                $balance = $account->balance; // Use model attribute
                 $expenseBalances[$account->id] = $balance;
                 $totalExpenses += $balance;
             }

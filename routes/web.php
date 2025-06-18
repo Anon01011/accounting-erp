@@ -44,6 +44,17 @@ use App\Http\Controllers\Asset\CategoryController as AssetCategoryController;
 use App\Http\Controllers\AssetDocumentController;
 use App\Http\Controllers\Settings\TaxGroupController;
 use App\Http\Controllers\Settings\TaxRateController;
+
+use App\Http\Controllers\AccountClassController;
+use App\Http\Controllers\GLControlGroupController;
+use App\Http\Controllers\LedgerAccountController;
+use App\Http\Controllers\SupplierController;
+use App\Http\Controllers\ItemCategoryController;
+use App\Http\Controllers\ItemMasterController;
+use App\Http\Controllers\BankController;
+use App\Http\Controllers\CostCentreController;
+use App\Http\Controllers\CurrencyController;
+use App\Http\Controllers\DepartmentController;
 use App\Http\Controllers\Audit\AuditLogController;
 
 // Redirect root to login
@@ -62,6 +73,7 @@ Route::middleware('guest')->group(function () {
     Route::post('/register', [RegisterController::class, 'register']);
 });
 
+    
 // Protected Routes
 Route::middleware('auth')->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
@@ -90,6 +102,19 @@ Route::middleware('auth')->group(function () {
         Route::delete('/{account}', [ChartOfAccountController::class, 'destroy'])->name('destroy');
         Route::post('/{account}/status', [ChartOfAccountController::class, 'updateStatus'])->name('status');
     });
+
+    // Master Data Routes
+    Route::resource('account-classes', AccountClassController::class);
+    Route::resource('gl-control-groups', GLControlGroupController::class);
+    Route::resource('ledger-accounts', LedgerAccountController::class);
+    Route::resource('suppliers', SupplierController::class);
+    Route::resource('item-categories', ItemCategoryController::class);
+    Route::resource('item-masters', ItemMasterController::class);
+    Route::resource('banks', BankController::class);
+    Route::resource('cost-centres', CostCentreController::class);
+    Route::resource('currencies', CurrencyController::class);
+    Route::resource('departments', DepartmentController::class);
+    
     
     // Journal Entries Routes
     Route::resource('journal-entries', JournalEntryController::class);

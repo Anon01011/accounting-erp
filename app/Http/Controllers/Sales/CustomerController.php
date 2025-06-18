@@ -3,13 +3,14 @@
 namespace App\Http\Controllers\Sales;
 
 use App\Http\Controllers\Controller;
+use App\Models\Customer;
 use Illuminate\Http\Request;
 
 class CustomerController extends Controller
 {
     public function index()
     {
-        $customers = \App\Models\Customer::latest()->paginate(10);
+        $customers = Customer::paginate(15);
         return view('sales.customers.index', compact('customers'));
     }
 
@@ -20,37 +21,58 @@ class CustomerController extends Controller
 
     public function store(Request $request)
     {
-        $validated = $request->validate([
+        $request->validate([
             'name' => 'required|string|max:255',
-            'type' => 'required|in:individual,company',
-            'email' => 'nullable|email|max:255',
-            'phone' => 'nullable|string|max:50',
-            'address' => 'nullable|string|max:255',
+            'type' => 'nullable|string|max:50',
+            'contact_person' => 'nullable|string|max:255',
+            'email' => 'nullable|email|unique:customers,email',
+            'phone' => 'nullable|string|max:20',
+            'address' => 'nullable|string',
+            'tax_number' => 'nullable|string|max:100',
+            'credit_limit' => 'nullable|numeric',
+            'status' => 'nullable|boolean',
+            'notes' => 'nullable|string',
         ]);
 
-        $customer = new \App\Models\Customer($validated);
-        $customer->save();
+        Customer::create($request->all());
 
-        return redirect()->route('customers.index')->with('success', 'Customer created successfully.');
+        return redirect()->route('sales.customers.index')->with('success', 'Customer created successfully.');
     }
 
-    public function show($id)
+    public function show(Customer $customer)
     {
-        return view('sales.customers.show');
+        return view('sales.customers.show', compact('customer'));
     }
 
-    public function edit($id)
+    public function edit(Customer $customer)
     {
-        return view('sales.customers.edit');
+        return view('sales.customers.edit', compact('customer'));
     }
 
-    public function update(Request $request, $id)
+    public function update(Request $request, Customer $customer)
     {
-        // TODO: Implement customer update logic
+        $request->validate([
+            'name' => 'required|string|max:255',
+            'type' => 'nullable|string|max:50',
+            'contact_person' => 'nullable|string|max:255',
+            'email' => 'nullable|email|unique:customers,email,' . $customer->id,
+            'phone' => 'nullable|string|max:20',
+            'address' => 'nullable|string',
+            'tax_number' => 'nullable|string|max:100',
+            'credit_limit' => 'nullable|numeric',
+            'status' => 'nullable|boolean',
+            'notes' => 'nullable|string',
+        ]);
+
+        $customer->update($request->all());
+
+        return redirect()->route('sales.customers.index')->with('success', 'Customer updated successfully.');
     }
 
-    public function destroy($id)
+    public function destroy(Customer $customer)
     {
-        // TODO: Implement customer deletion logic
+        $customer->delete();
+
+        return redirect()->route('sales.customers.index')->with('success', 'Customer deleted successfully.');
     }
-} 
+}

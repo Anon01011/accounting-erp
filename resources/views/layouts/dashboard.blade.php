@@ -532,6 +532,61 @@ use Illuminate\Support\Facades\Auth;
                     </a>
                 </div>
 
+                <!-- Master -->
+                <div class="menu-item">
+                    <button class="menu-link w-full text-left" onclick="toggleSubmenu(this)">
+                        <i class="fas fa-layer-group menu-icon"></i>
+                        <span class="menu-text">Master</span>
+                        <i class="fas fa-chevron-down chevron"></i>
+                    </button>
+                    <div class="submenu">
+                        <a href="{{ route('account-classes.index') }}" class="menu-link submenu-link">
+                            <i class="fas fa-th-large menu-icon"></i>
+                            <span class="menu-text">Account Class</span>
+                        </a>
+                        <a href="{{ route('gl-control-groups.index') }}" class="menu-link submenu-link">
+                            <i class="fas fa-cogs menu-icon"></i>
+                            <span class="menu-text">GL Control Group</span>
+                        </a>
+                        <a href="{{ route('ledger-accounts.index') }}" class="menu-link submenu-link">
+                            <i class="fas fa-book menu-icon"></i>
+                            <span class="menu-text">Ledger Account</span>
+                        </a>
+<a href="{{ route('sales.customers.index') }}" class="menu-link submenu-link">
+                            <i class="fas fa-user menu-icon"></i>
+                            <span class="menu-text">Customer</span>
+                        </a>
+                        <a href="{{ route('suppliers.index') }}" class="menu-link submenu-link">
+                            <i class="fas fa-truck menu-icon"></i>
+                            <span class="menu-text">Supplier</span>
+                        </a>
+                        <a href="{{ route('item-categories.index') }}" class="menu-link submenu-link">
+                            <i class="fas fa-tags menu-icon"></i>
+                            <span class="menu-text">Item Category</span>
+                        </a>
+                        <a href="{{ route('item-masters.index') }}" class="menu-link submenu-link">
+                            <i class="fas fa-box menu-icon"></i>
+                            <span class="menu-text">Item Master</span>
+                        </a>
+                        <a href="{{ route('banks.index') }}" class="menu-link submenu-link">
+                            <i class="fas fa-university menu-icon"></i>
+                            <span class="menu-text">Bank</span>
+                        </a>
+                        <a href="{{ route('cost-centres.index') }}" class="menu-link submenu-link">
+                            <i class="fas fa-chart-pie menu-icon"></i>
+                            <span class="menu-text">Cost Centre</span>
+                        </a>
+                        <a href="{{ route('currencies.index') }}" class="menu-link submenu-link">
+                            <i class="fas fa-coins menu-icon"></i>
+                            <span class="menu-text">Currency</span>
+                        </a>
+                        <a href="{{ route('departments.index') }}" class="menu-link submenu-link">
+                            <i class="fas fa-building menu-icon"></i>
+                            <span class="menu-text">Department</span>
+                        </a>
+                    </div>
+                </div>
+
                 <!-- Sales -->
                 <div class="menu-item">
                     <button class="menu-link w-full text-left" onclick="toggleSubmenu(this)">

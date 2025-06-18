@@ -8,15 +8,20 @@ use App\Models\Customer;
 use App\Models\Product;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\DB;
 use PDF;
 
 class QuotationController extends Controller
 {
     public function index()
     {
+        // Debug: Log the count of quotations fetched
         $quotations = Quotation::with('customer')
             ->latest()
             ->paginate(10);
+
+        Log::info('Quotations fetched count: ' . $quotations->count());
 
         return view('sales.quotations.index', compact('quotations'));
     }
@@ -31,6 +36,8 @@ class QuotationController extends Controller
 
     public function store(Request $request)
     {
+        Log::info('Quotation store method called with data: ', $request->all());
+
         $validated = $request->validate([
             'customer_id' => 'required|exists:customers,id',
             'reference_number' => 'required|string|unique:quotations,reference_number',
@@ -46,40 +53,52 @@ class QuotationController extends Controller
             'notes' => 'nullable|string',
         ]);
 
-        $quotation = Quotation::create([
-            'customer_id' => $validated['customer_id'],
-            'reference_number' => $validated['reference_number'],
-            'quotation_date' => $validated['quotation_date'],
-            'valid_until' => $validated['valid_until'],
-            'notes' => $validated['notes'] ?? null,
-            'status' => 'draft',
-            'total_amount' => 0,
-        ]);
+        try {
+            DB::beginTransaction();
 
-        $totalAmount = 0;
-        foreach ($validated['items'] as $item) {
-            $subtotal = $item['quantity'] * $item['unit_price'];
-            $discountAmount = ($subtotal * ($item['discount'] ?? 0)) / 100;
-            $taxAmount = (($subtotal - $discountAmount) * $item['tax_rate']) / 100;
-            $total = $subtotal - $discountAmount + $taxAmount;
-
-            $quotation->items()->create([
-                'product_id' => $item['product_id'],
-                'quantity' => $item['quantity'],
-                'unit_price' => $item['unit_price'],
-                'discount' => $item['discount'] ?? 0,
-                'tax_rate' => $item['tax_rate'],
-                'total' => $total,
-                'description' => $item['description'] ?? null,
+            $quotation = Quotation::create([
+                'customer_id' => $validated['customer_id'],
+                'reference_number' => $validated['reference_number'],
+                'quotation_date' => $validated['quotation_date'],
+                'valid_until' => $validated['valid_until'],
+                'notes' => $validated['notes'] ?? null,
+                'status' => 'draft',
+                'total_amount' => 0,
             ]);
 
-            $totalAmount += $total;
+            $totalAmount = 0;
+            foreach ($validated['items'] as $item) {
+                $subtotal = $item['quantity'] * $item['unit_price'];
+                $discountAmount = ($subtotal * ($item['discount'] ?? 0)) / 100;
+                $taxAmount = (($subtotal - $discountAmount) * $item['tax_rate']) / 100;
+                $total = $subtotal - $discountAmount + $taxAmount;
+
+                $quotation->items()->create([
+                    'product_id' => $item['product_id'],
+                    'quantity' => $item['quantity'],
+                    'unit_price' => $item['unit_price'],
+                    'discount' => $item['discount'] ?? 0,
+                    'tax_rate' => $item['tax_rate'],
+                    'total' => $total,
+                    'description' => $item['description'] ?? null,
+                ]);
+
+                $totalAmount += $total;
+            }
+
+            $quotation->update(['total_amount' => $totalAmount]);
+
+            DB::commit();
+
+            Log::info('Quotation created with ID: ' . $quotation->id);
+
+            return redirect()->route('sales.quotations.index')
+                ->with('success', 'Quotation created successfully.');
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('Error creating quotation: ' . $e->getMessage());
+            return redirect()->back()->withErrors('Failed to create quotation. Please try again.');
         }
-
-        $quotation->update(['total_amount' => $totalAmount]);
-
-        return redirect()->route('sales.quotations.index')
-            ->with('success', 'Quotation created successfully.');
     }
 
     public function show(Quotation $quotation)
@@ -113,49 +132,74 @@ class QuotationController extends Controller
             'notes' => 'nullable|string',
         ]);
 
-        $quotation->update([
-            'customer_id' => $validated['customer_id'],
-            'reference_number' => $validated['reference_number'],
-            'quotation_date' => $validated['quotation_date'],
-            'valid_until' => $validated['valid_until'],
-            'notes' => $validated['notes'] ?? null,
-        ]);
+        try {
+            DB::beginTransaction();
 
-        // Delete existing items
-        $quotation->items()->delete();
-
-        // Create new items
-        $totalAmount = 0;
-        foreach ($validated['items'] as $item) {
-            $subtotal = $item['quantity'] * $item['unit_price'];
-            $discountAmount = ($subtotal * ($item['discount'] ?? 0)) / 100;
-            $taxAmount = (($subtotal - $discountAmount) * $item['tax_rate']) / 100;
-            $total = $subtotal - $discountAmount + $taxAmount;
-
-            $quotation->items()->create([
-                'product_id' => $item['product_id'],
-                'quantity' => $item['quantity'],
-                'unit_price' => $item['unit_price'],
-                'discount' => $item['discount'] ?? 0,
-                'tax_rate' => $item['tax_rate'],
-                'total' => $total,
-                'description' => $item['description'] ?? null,
+            $quotation->update([
+                'customer_id' => $validated['customer_id'],
+                'reference_number' => $validated['reference_number'],
+                'quotation_date' => $validated['quotation_date'],
+                'valid_until' => $validated['valid_until'],
+                'notes' => $validated['notes'] ?? null,
             ]);
 
-            $totalAmount += $total;
+            // Delete existing items
+            $quotation->items()->delete();
+
+            // Create new items
+            $totalAmount = 0;
+            foreach ($validated['items'] as $item) {
+                $subtotal = $item['quantity'] * $item['unit_price'];
+                $discountAmount = ($subtotal * ($item['discount'] ?? 0)) / 100;
+                $taxAmount = (($subtotal - $discountAmount) * $item['tax_rate']) / 100;
+                $total = $subtotal - $discountAmount + $taxAmount;
+
+                $quotation->items()->create([
+                    'product_id' => $item['product_id'],
+                    'quantity' => $item['quantity'],
+                    'unit_price' => $item['unit_price'],
+                    'discount' => $item['discount'] ?? 0,
+                    'tax_rate' => $item['tax_rate'],
+                    'total' => $total,
+                    'description' => $item['description'] ?? null,
+                ]);
+
+                $totalAmount += $total;
+            }
+
+            $quotation->update(['total_amount' => $totalAmount]);
+
+            DB::commit();
+
+            Log::info('Quotation updated with ID: ' . $quotation->id);
+
+            return redirect()->route('sales.quotations.index')
+                ->with('success', 'Quotation updated successfully.');
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('Error updating quotation: ' . $e->getMessage());
+            return redirect()->back()->withErrors('Failed to update quotation. Please try again.');
         }
-
-        $quotation->update(['total_amount' => $totalAmount]);
-
-        return redirect()->route('sales.quotations.index')
-            ->with('success', 'Quotation updated successfully.');
     }
 
     public function destroy(Quotation $quotation)
     {
-        $quotation->delete();
-        return redirect()->route('sales.quotations.index')
-            ->with('success', 'Quotation deleted successfully.');
+        try {
+            DB::beginTransaction();
+
+            $quotation->delete();
+
+            DB::commit();
+
+            Log::info('Quotation deleted with ID: ' . $quotation->id);
+
+            return redirect()->route('sales.quotations.index')
+                ->with('success', 'Quotation deleted successfully.');
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('Error deleting quotation: ' . $e->getMessage());
+            return redirect()->back()->withErrors('Failed to delete quotation. Please try again.');
+        }
     }
 
     public function convert($id)
@@ -187,7 +231,7 @@ class QuotationController extends Controller
         Mail::send('emails.quotation', ['quotation' => $quotation, 'message' => $request->message], function($message) use ($request, $quotation, $pdf) {
             $message->to($request->email)
                    ->subject($request->subject)
-                   ->attachData($pdf->output(), "quotation-{$quotation->quotation_no}.pdf");
+                   ->attachData($pdf->output(), "quotation-{$quotation->reference_number}.pdf");
         });
 
         return response()->json(['success' => true]);
@@ -232,4 +276,4 @@ class QuotationController extends Controller
         $pdf = PDF::loadView('sales.quotations.pdf', compact('quotation'));
         return $pdf->stream('quotation-template.pdf');
     }
-} 
+}

@@ -1,0 +1,58 @@
+@extends('layouts.dashboard')
+
+@section('content')
+<div class="py-4">
+    <div class="max-w-4xl mx-auto sm:px-6 lg:px-8">
+        <div class="bg-white shadow rounded-lg p-6">
+            <h1 class="text-3xl font-bold text-gray-900 mb-6">Edit Currency</h1>
+
+            @if ($errors->any())
+                <div class="mb-4">
+                    <ul class="list-disc list-inside text-sm text-red-600">
+                        @foreach ($errors->all() as $error)
+                            <li>{{ $error }}</li>
+                        @endforeach
+                    </ul>
+                </div>
+            @endif
+
+            <form action="{{ route('currencies.update', $currency) }}" method="POST">
+                @csrf
+                @method('PUT')
+
+                <div class="mb-4">
+                    <label for="code" class="block text-gray-700 font-semibold mb-2">Code</label>
+                    <input type="text" name="code" id="code" value="{{ old('code', $currency->code) }}" required
+                           class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#01657F] focus:border-transparent">
+                </div>
+
+                <div class="mb-4">
+                    <label for="name" class="block text-gray-700 font-semibold mb-2">Name</label>
+                    <input type="text" name="name" id="name" value="{{ old('name', $currency->name) }}" required
+                           class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#01657F] focus:border-transparent">
+                </div>
+
+                <div class="mb-4">
+                    <label for="symbol" class="block text-gray-700 font-semibold mb-2">Symbol</label>
+                    <input type="text" name="symbol" id="symbol" value="{{ old('symbol', $currency->symbol) }}" required
+                           class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#01657F] focus:border-transparent">
+                </div>
+
+                <div class="mb-4">
+                    <label for="exchange_rate" class="block text-gray-700 font-semibold mb-2">Exchange Rate</label>
+                    <input type="number" step="0.0001" name="exchange_rate" id="exchange_rate" value="{{ old('exchange_rate', $currency->exchange_rate) }}" required
+                           class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#01657F] focus:border-transparent">
+                    @error('exchange_rate')
+                        <p class="text-red-600 text-sm mt-1">{{ $message }}</p>
+                    @enderror
+                </div>
+
+                <div class="flex justify-end space-x-4">
+                    <a href="{{ route('currencies.index') }}" class="px-4 py-2 bg-gray-300 rounded hover:bg-gray-400 text-gray-800 font-semibold">Cancel</a>
+                    <button type="submit" class="px-4 py-2 bg-[#01657F] rounded text-white font-semibold hover:bg-[#014d61]">Update Currency</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+@endsection
